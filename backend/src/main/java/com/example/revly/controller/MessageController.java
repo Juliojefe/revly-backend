@@ -13,7 +13,7 @@ import java.security.Principal;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/message")
+@RequestMapping("/api/message")
 public class MessageController {
 
     @Autowired

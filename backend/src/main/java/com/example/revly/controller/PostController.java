@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Set;
 
 @RestController
-@RequestMapping("api/post")
+@RequestMapping("/api/post")
 public class PostController {
 
     @Autowired

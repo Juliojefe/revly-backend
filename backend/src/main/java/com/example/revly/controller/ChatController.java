@@ -15,7 +15,7 @@ import java.security.Principal;
 import java.util.Set;
 
 @RestController
-@RequestMapping("api/chat")
+@RequestMapping("/api/chat")
 public class ChatController {
 
     @Autowired

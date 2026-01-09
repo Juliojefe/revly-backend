@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 
 @RestController
-@RequestMapping("api/follow")
+@RequestMapping("/api/follow")
 public class FollowController {
 
     @Autowired
