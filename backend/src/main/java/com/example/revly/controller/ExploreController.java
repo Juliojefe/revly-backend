@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.security.Principal;
 
 @RestController
-@RequestMapping("api/explore")
+@RequestMapping("/api/explore")
 public class ExploreController {
 
     @Autowired
@@ -27,7 +27,7 @@ public class ExploreController {
     @Autowired
     private ExploreService exploreService;
 
-    @GetMapping("/explore")
+    @GetMapping
     public ResponseEntity<Page<PostSummary>> getExplorePosts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
@@ -40,7 +40,7 @@ public class ExploreController {
         );
     }
 
-    @GetMapping("/explore/guest")
+    @GetMapping("/guest")
     public ResponseEntity<Page<PostSummary>> getExplorePostsGuest(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size
