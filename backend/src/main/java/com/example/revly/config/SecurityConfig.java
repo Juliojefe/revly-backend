@@ -45,7 +45,7 @@ public class SecurityConfig {
             "/api/post/owned/{userId}",
             "/api/post/liked/{userId}",
             "/api/post/{id}",
-            "/api/post/explore/guest",
+            "/api/explore/guest",
             "/api/user/{id}/name-and-pfp",
             "/api/user/{id}/profile/public",
             "/api/user/all-ids",

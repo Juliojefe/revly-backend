@@ -77,8 +77,7 @@ public class PostService {
         return new PageImpl<>(summaries, pageable, posts.getTotalElements());
     }
 
-
-        public List<Integer> getFollowingPostIds(User u) {
+    public List<Integer> getFollowingPostIds(User u) {
         Set<User> followedUsers = u.getFollowing();
         List<Post> followingPosts = new ArrayList<>();
         for (User followed : followedUsers) {

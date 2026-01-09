@@ -5,10 +5,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/test")
 public class TestController {
-    @GetMapping("/test")
+    @GetMapping
     public String test() {
         return "This is a protected endpoint!";
     }
+
+    @GetMapping("/public")
+    public String testPublic() { return "This is an open endpoint!"; }
 }

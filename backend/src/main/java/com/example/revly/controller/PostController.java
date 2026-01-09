@@ -8,13 +8,9 @@ import com.example.revly.model.User;
 import com.example.revly.repository.UserRepository;
 import com.example.revly.service.PostService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 
 import java.io.IOException;
 import java.security.Principal;
@@ -24,7 +20,7 @@ import java.util.List;
 import java.util.Set;
 
 @RestController
-@RequestMapping("api/post")
+@RequestMapping("/api/post")
 public class PostController {
 
     @Autowired
@@ -41,30 +37,6 @@ public class PostController {
     @GetMapping("/all-ids")
     public ResponseEntity<Set<Integer>> getAllPostIds() {
         return ResponseEntity.ok(postService.getAllPostIds());
-    }
-
-    @GetMapping("/explore")
-    public ResponseEntity<Page<PostSummary>> getExplorePosts(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size,
-            Principal principal
-    ) {
-        User user = getUserFromPrincipalOrThrow(principal);
-        Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(
-                postService.getExplorePosts(pageable, user)
-        );
-    }
-
-    @GetMapping("/explore/guest")
-    public ResponseEntity<Page<PostSummary>> getExplorePostsGuest(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size
-    ) {
-        Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(
-                postService.getExplorePostsGuest(pageable)
-        );
     }
 
     @GetMapping("/following")
@@ -136,18 +108,6 @@ public class PostController {
         CreatePostRequestImages request = new CreatePostRequestImages(description, Instant.parse(createdAt), imageList);
         User user = getUserFromPrincipalOrThrow(principal);
         return ResponseEntity.ok(postService.createPost(request, user.getUserId()));
-    }
-
-    //  Helper method to safely extract the user ID from the Authentication object.
-    private int getUserIdFromAuthentication(Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new SecurityException("User is not authenticated.");
-        }
-        if (authentication.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt) {
-            org.springframework.security.oauth2.jwt.Jwt jwt = (org.springframework.security.oauth2.jwt.Jwt) authentication.getPrincipal();
-            return jwt.getClaim("userId");
-        }
-        throw new IllegalArgumentException("Cannot determine user ID from authentication token.");
     }
 
     private User getUserFromPrincipalOrThrow(Principal principal) {

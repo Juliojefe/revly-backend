@@ -12,7 +12,7 @@ import java.security.Principal;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/message-image")
+@RequestMapping("/api/message-image")
 public class MessageImageController {
 
     @Autowired
