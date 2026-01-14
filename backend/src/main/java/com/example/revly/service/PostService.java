@@ -7,6 +7,7 @@ import com.example.revly.exception.BadRequestException;
 import com.example.revly.exception.ResourceNotFoundException;
 import com.example.revly.model.Post;
 import com.example.revly.model.PostImage;
+import com.example.revly.dto.response.CreatePostConfirmation;
 import com.example.revly.model.User;
 import com.example.revly.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -204,10 +205,13 @@ public class PostService {
         throw new BadRequestException("Not saved");
     }
 
-    public PostSummary createPost(CreatePostRequestUrl request, int userId) {
+    public CreatePostConfirmation createPost(CreatePostRequestUrl request, int userId) {
         Optional<User> optUser = userRepository.findById(userId);
         if (optUser.isEmpty()) {
             throw new ResourceNotFoundException("User not found with id: " + userId);
+        }
+        if (request.getDescription().isEmpty()) {
+            return new CreatePostConfirmation(false, "Description must not be empty");
         }
         User u = optUser.get();
         Post post = new Post();
@@ -223,13 +227,16 @@ public class PostService {
         }
         post.setImages(postImages);
         Post savedPost = postRepository.save(post);
-        return new PostSummary(savedPost);
+        return new CreatePostConfirmation(true, "Post uploaded successfully!");
     }
 
-    public PostSummary createPost(CreatePostRequestImages requestImages, int userId) throws IOException {
+    public CreatePostConfirmation createPost(CreatePostRequestImages requestImages, int userId) throws IOException {
         Optional<User> optUser = userRepository.findById(userId);
         if (optUser.isEmpty()) {
             throw new ResourceNotFoundException("User not found with id: " + userId);
+        }
+        if (requestImages.getDescription().isEmpty()) {
+            return new CreatePostConfirmation(false, "Description must not be empty");
         }
         User u = optUser.get();
         Post post = new Post();
@@ -246,7 +253,7 @@ public class PostService {
         }
         post.setImages(postImages);
         Post savedPost = postRepository.save(post);
-        return new PostSummary(savedPost);
+        return new CreatePostConfirmation(true, "Post uploaded successfully!");
     }
 
 }

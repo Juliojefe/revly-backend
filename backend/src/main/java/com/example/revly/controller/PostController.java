@@ -2,6 +2,7 @@ package com.example.revly.controller;
 
 import com.example.revly.dto.request.CreatePostRequestImages;
 import com.example.revly.dto.request.CreatePostRequestUrl;
+import com.example.revly.dto.response.CreatePostConfirmation;
 import com.example.revly.dto.response.PostSummary;
 import com.example.revly.exception.UnauthorizedException;
 import com.example.revly.model.User;
@@ -91,13 +92,13 @@ public class PostController {
     }
 
     @PostMapping("/create/urls")
-    public ResponseEntity<PostSummary> createPost(@RequestBody CreatePostRequestUrl request, Principal principal) {
+    public ResponseEntity<CreatePostConfirmation> createPost(@RequestBody CreatePostRequestUrl request, Principal principal) {
         User user = getUserFromPrincipalOrThrow(principal);
         return ResponseEntity.ok(postService.createPost(request, user.getUserId()));
     }
 
     @PostMapping(value = "/create/images", consumes = { "multipart/form-data" })
-    public ResponseEntity<PostSummary> createPost(
+    public ResponseEntity<CreatePostConfirmation> createPost(
             @RequestParam("description") String description,
             @RequestParam("createdAt") String createdAt,
             @RequestParam(value = "requestImages", required = false) List<MultipartFile> images,
