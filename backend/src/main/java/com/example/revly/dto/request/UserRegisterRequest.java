@@ -6,13 +6,23 @@ public class UserRegisterRequest {
     private String password;
     private String confirmPassword;
     private String profilePic;
+    private String biography;
 
-    public UserRegisterRequest(String name, String email, String password, String confirmPassword, String profilePic) {
+    public UserRegisterRequest(String name, String email, String password, String confirmPassword, String profilePic, String biography) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.confirmPassword = confirmPassword;
         this.profilePic = profilePic;
+        this.biography = biography;
+    }
+
+    public String getBiography() {
+        return biography;
+    }
+
+    public void setBiography(String biography) {
+        this.biography = biography;
     }
 
     public String getConfirmPassword() {
