@@ -1,9 +1,6 @@
 package com.example.revly.controller;
 
-import com.example.revly.dto.request.UpdateEmailRequest;
-import com.example.revly.dto.request.UpdateNameRequest;
-import com.example.revly.dto.request.UpdatePasswordRequest;
-import com.example.revly.dto.request.UpdateProfilePicRequest;
+import com.example.revly.dto.request.*;
 import com.example.revly.dto.response.GetUserProfilePrivateResponse;
 import com.example.revly.dto.response.GetUserProfilePublicResponse;
 import com.example.revly.dto.response.UserNameAndPfp;
@@ -86,11 +83,18 @@ public class UserController {
         return ResponseEntity.ok(true);
     }
 
-    @PatchMapping("/update-profile-pic/{id}/url-new-pic")
+    @PatchMapping("/update-profile-pic")
     public ResponseEntity<Boolean> updateProfilePic(@RequestBody UpdateProfilePicRequest request) {
         userService.updateProfilePic(request);
         return ResponseEntity.ok(true);
     }
+
+
+    @PatchMapping("/update-bio")
+    public ResponseEntity<Boolean> updateBio(@RequestBody UpdateBioRequest request) {
+        return ResponseEntity.ok(userService.updateBio(request));
+    }
+
 
     @DeleteMapping("/delete-user/{id}")
     public ResponseEntity<Boolean> deleteUser(@RequestBody int requestUserId) {
