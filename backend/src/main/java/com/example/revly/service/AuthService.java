@@ -43,7 +43,7 @@ public class AuthService {
         String confirmPassword = request.getConfirmPassword() != null ? request.getConfirmPassword().trim() : "";
         String name = request.getName() != null ? request.getName().trim() : "";
         String profilePic = request.getProfilePic() != null ? request.getProfilePic().trim() : getDefaultProfilePic();
-
+        String biography = request.getBiography() != null ? request.getBiography().trim() : "";
         if (!password.equals(confirmPassword)) {
             return new AuthResponse("Passwords do not match");
         }
@@ -61,12 +61,16 @@ public class AuthService {
         if (nameParts.length != 2 || nameParts[0].length() < 2 || nameParts[1].length() < 2) {
             return new AuthResponse("Invalid first or last name");
         }
+        if (biography.length() > 150) {
+            return new AuthResponse("Bio should be shorter than 150 characters");
+        }
         User newUser = new User();
         newUser.setEmail(email);
         newUser.setName(name);
         newUser.setProfilePic(profilePic);
         newUser.setPassword(passwordEncoder.encode(password));
         newUser.setGoogleId(null);
+        newUser.setBiography(biography);
         initializeUserCollections(newUser);
         userRepository.save(newUser);
         return createSuccessResponse(newUser, false);
@@ -98,6 +102,7 @@ public class AuthService {
         newUser.setProfilePic(profilePic);
         newUser.setPassword(null);
         newUser.setGoogleId(googleId);
+        newUser.setBiography("");   //  empty bio for Google users initially
         initializeUserCollections(newUser);
         userRepository.save(newUser);
         return createSuccessResponse(newUser, true);
@@ -178,6 +183,6 @@ public class AuthService {
         UserRoles ur = user.getUserRoles();
         Boolean isAdmin = ur.getIsAdmin();
         Boolean isMechanic =  ur.getIsMechanic();
-        return new AuthResponse(user.getName(), user.getEmail(), user.getProfilePic(), isGoogle, accessToken, refreshToken, isAdmin, isMechanic);
+        return new AuthResponse(user.getName(), user.getEmail(), user.getProfilePic(), isGoogle, accessToken, refreshToken, isAdmin, isMechanic, user.getBiography());
     }
 }

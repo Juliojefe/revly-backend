@@ -33,6 +33,9 @@ public class User {
     @Column(name = "google_id")
     private String googleId;
 
+    @Column(name = "biography")
+    private String biography;
+
     @JsonIgnore
     @ManyToMany
     @JoinTable(
@@ -180,5 +183,13 @@ public class User {
 
     public void setLikedPosts(Set<Post> likedPosts) {
         this.likedPosts = likedPosts;
+    }
+
+    public String getBiography() {
+        return biography;
+    }
+
+    public void setBiography(String biography) {
+        this.biography = biography;
     }
 }

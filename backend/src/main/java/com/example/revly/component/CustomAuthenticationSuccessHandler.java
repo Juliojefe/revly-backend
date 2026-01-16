@@ -35,17 +35,15 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
             }
             String finalProfilePic = (profilePic != null) ? profilePic : "";
 
-            try {
-                // Try login
-                AuthResponse loginResp = authService.googleLogin(googleId);
-                buildRedirect(response, loginResp);
-            } catch (UnauthorizedException ex) {
-                // Login failed so auto-register
+            // Try login first
+            AuthResponse resp = authService.googleLogin(googleId);
+            // If login fails (no token), auto-register
+            if (resp.getAccessToken() == null) {
                 GoogleUserRegisterRequest registerRequest =
                         new GoogleUserRegisterRequest(googleId, email, name, finalProfilePic);
-                AuthResponse registerResp = authService.googleRegister(registerRequest);
-                buildRedirect(response, registerResp);
+                resp = authService.googleRegister(registerRequest);
             }
+            buildRedirect(response, resp);
         } catch (Exception ex) {
             buildErrorRedirect(response, ex.getMessage());
         }

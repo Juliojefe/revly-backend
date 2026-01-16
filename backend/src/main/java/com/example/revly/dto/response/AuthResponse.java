@@ -10,9 +10,10 @@ public class AuthResponse {
     private String refreshToken;
     private Boolean isMechanic;
     private Boolean isAdmin;
+    private String biography;
 
     // Constructor for success (message is omitted/null)
-    public AuthResponse(String name, String email, String profilePic, boolean isGoogle, String accessToken, String refreshToken, Boolean isAdmin, Boolean isMechanic) {
+    public AuthResponse(String name, String email, String profilePic, boolean isGoogle, String accessToken, String refreshToken, Boolean isAdmin, Boolean isMechanic, String biography) {
         this.name = name;
         this.email = email;
         this.profilePic = profilePic;
@@ -21,11 +22,20 @@ public class AuthResponse {
         this.refreshToken = refreshToken;
         this.isAdmin = isAdmin;
         this.isMechanic = isMechanic;
+        this.biography = biography;
     }
 
     // Constructor for error (other fields are omitted/null)
     public AuthResponse(String message) {
         this.message = message;
+    }
+
+    public String getBiography() {
+        return biography;
+    }
+
+    public void setBiography(String biography) {
+        this.biography = biography;
     }
 
     public String getMessage() {

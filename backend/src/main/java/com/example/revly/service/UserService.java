@@ -1,9 +1,6 @@
 package com.example.revly.service;
 
-import com.example.revly.dto.request.UpdateEmailRequest;
-import com.example.revly.dto.request.UpdateNameRequest;
-import com.example.revly.dto.request.UpdatePasswordRequest;
-import com.example.revly.dto.request.UpdateProfilePicRequest;
+import com.example.revly.dto.request.*;
 import com.example.revly.dto.response.GetUserProfilePrivateResponse;
 import com.example.revly.dto.response.GetUserProfilePublicResponse;
 import com.example.revly.dto.response.UserNameAndPfp;
@@ -175,6 +172,18 @@ public class UserService {
         User tempUser = user.get();
         tempUser.setProfilePic(request.getPictureUrl());
         userRepository.save(tempUser);
+    }
+
+
+    public Boolean updateBio(UpdateBioRequest request) {
+        Optional<User> user = userRepository.findById(request.getUserId());
+        if (user.isEmpty()) {
+            throw new ResourceNotFoundException("User not found with id: " + request.getUserId());
+        }
+        User tempUser = user.get();
+        tempUser.setProfilePic(request.getNewBio());
+        userRepository.save(tempUser);
+        return true;
     }
 
     public void deleteUser(int requestUserId) {
