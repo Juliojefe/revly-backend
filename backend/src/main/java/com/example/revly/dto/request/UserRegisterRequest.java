@@ -8,6 +8,8 @@ public class UserRegisterRequest {
     private String profilePic;
     private String biography;
 
+    public UserRegisterRequest() {}
+
     public UserRegisterRequest(String name, String email, String password, String confirmPassword, String profilePic, String biography) {
         this.name = name;
         this.email = email;

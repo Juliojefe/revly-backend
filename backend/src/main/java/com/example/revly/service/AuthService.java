@@ -44,7 +44,6 @@ public class AuthService {
         String name = request.getName() != null ? request.getName().trim() : "";
         String profilePic = request.getProfilePic() != null ? request.getProfilePic().trim() : getDefaultProfilePic();
         String biography = request.getBiography() != null ? request.getBiography().trim() : "";
-
         if (!password.equals(confirmPassword)) {
             return new AuthResponse("Passwords do not match");
         }
@@ -71,6 +70,7 @@ public class AuthService {
         newUser.setProfilePic(profilePic);
         newUser.setPassword(passwordEncoder.encode(password));
         newUser.setGoogleId(null);
+        newUser.setBiography(biography);
         initializeUserCollections(newUser);
         userRepository.save(newUser);
         return createSuccessResponse(newUser, false);
