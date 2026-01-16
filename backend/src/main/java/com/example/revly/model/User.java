@@ -33,8 +33,8 @@ public class User {
     @Column(name = "google_id")
     private String googleId;
 
-    @Column(name = "description")
-    private String description;
+    @Column(name = "biography")
+    private String biography;
 
     @JsonIgnore
     @ManyToMany
@@ -185,11 +185,11 @@ public class User {
         this.likedPosts = likedPosts;
     }
 
-    public String getDescription() {
-        return description;
+    public String getBiography() {
+        return biography;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setBiography(String biography) {
+        this.biography = biography;
     }
 }
