@@ -13,7 +13,7 @@ import java.util.Set;
 public class PostSummary {
 
     private int postId;
-    private int authorId;
+    private Integer authorId;  // Integer to allow null
     private String description;
     private String createdBy;
     private String createdByProfilePicUrl;
@@ -27,10 +27,17 @@ public class PostSummary {
 
     public PostSummary(Post post) {
         this.postId = post.getPostId();
-        this.authorId = post.getUser().getUserId();
+        User user = post.getUser();
+        if (user != null) {
+            this.authorId = user.getUserId();
+            this.createdBy = user.getName();
+            this.createdByProfilePicUrl = user.getProfilePic();
+        } else {
+            this.authorId = null;
+            this.createdBy = null;
+            this.createdByProfilePicUrl = null;
+        }
         this.description = post.getDescription();
-        this.createdBy = post.getUser().getName();
-        this.createdByProfilePicUrl = post.getUser().getProfilePic();
         this.createdAt = post.getCreatedAt();
         this.likeIds = getUserIds(post.getLikers());
         this.likeCount = likeIds.size();
@@ -51,8 +58,10 @@ public class PostSummary {
     private Set<Integer> getUserIds(Set<User> users) {
         try {
             Set<Integer> ids = new HashSet<>();
-            for (User u : users) {
-                ids.add(u.getUserId());
+            if (users != null) {  // prevent NullPointerException
+                for (User u : users) {
+                    ids.add(u.getUserId());
+                }
             }
             return ids;
         } catch (Exception e) {
@@ -60,11 +69,11 @@ public class PostSummary {
         }
     }
 
-    public int getAuthorId() {
+    public Integer getAuthorId() {
         return authorId;
     }
 
-    public void setAuthorId(int authorId) {
+    public void setAuthorId(Integer authorId) {
         this.authorId = authorId;
     }
 
@@ -91,8 +100,10 @@ public class PostSummary {
     List<String> getImageUrls(Set<PostImage> postImages) {
         try {
             List<String> images = new ArrayList<>();
-            for (PostImage pi : postImages) {
-                images.add(pi.getImageUrl());
+            if (postImages != null) {  // prevent NullPointerException
+                for (PostImage pi : postImages) {
+                    images.add(pi.getImageUrl());
+                }
             }
             return images;
         } catch (Exception e) {
@@ -103,8 +114,10 @@ public class PostSummary {
     private Set<UserNameAndPfp> summarizeUsers(Set<User> users) {
         try {
             Set<UserNameAndPfp> summary = new HashSet<>();
-            for (User u : users) {
-                summary.add(new UserNameAndPfp(u));
+            if (users != null) {    // prevent NullPointerException
+                for (User u : users) {
+                    summary.add(new UserNameAndPfp(u));
+                }
             }
             return summary;
         } catch (Exception e) {
