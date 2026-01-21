@@ -21,6 +21,9 @@ public class ExploreService {
     @Autowired
     private PostRepository postRepository;
 
+    /*
+    Posts of those not followed by user, newest to oldest
+     */
     public Page<PostSummary> getExplorePosts(Pageable pageable, User u) {
         Set<Integer> excludedUserIds = new HashSet<>();
         for (User followedUser : u.getFollowing()) {
@@ -30,7 +33,9 @@ public class ExploreService {
         Page<Post> posts = postRepository.findByUserUserIdNotIn(excludedUserIds, pageable);
         List<PostSummary> summaries = new ArrayList<>();
         for (Post post : posts.getContent()) {
-            summaries.add(new PostSummary(post));
+            Boolean hasLiked = post.getLikers().contains(u);
+            Boolean hasSaved = post.getSavers().contains(u);
+            summaries.add(new PostSummary(post, hasLiked, hasSaved));
         }
         return new PageImpl<>(summaries, pageable, posts.getTotalElements());
     }
@@ -39,7 +44,7 @@ public class ExploreService {
         Page<Post> posts = postRepository.findAll(pageable);
         List<PostSummary> summaries = new ArrayList<>();
         for (Post post : posts.getContent()) {
-            summaries.add(new PostSummary(post));
+            summaries.add(new PostSummary(post, false, false));
         }
         return new PageImpl<>(summaries, pageable, posts.getTotalElements());
     }

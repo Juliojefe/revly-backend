@@ -115,7 +115,7 @@ public class GetUserProfilePrivateResponse {
         try {
             Set<PostSummary> pSum = new HashSet<>();
             for (Post p : posts) {
-                pSum.add(new PostSummary(p));
+                pSum.add(new PostSummary(p, false, false));
             }
             return pSum;
         } catch (Exception e) {

@@ -20,9 +20,10 @@ public class PostSummary {
     private Instant createdAt;
     private int likeCount;
     private List<String> imageUrls;
-    private Set<Integer> savedIds;
+    private Boolean hasLiked;
+    private Boolean hasSaved;
 
-    public PostSummary(Post post) {
+    public PostSummary(Post post, Boolean hasLiked, Boolean hasSaved) {
         this.postId = post.getPostId();
         User user = post.getUser();
         if (user != null) {
@@ -38,7 +39,15 @@ public class PostSummary {
         this.createdAt = post.getCreatedAt();
         this.likeCount = post.getLikers().size();
         this.imageUrls = getImageUrls(post.getPostImages());
-        this.savedIds = getUserIds(post.getSavers());
+        this.hasLiked = hasLiked;
+        this.hasSaved = hasSaved;
+    }
+
+    public PostSummary() {
+        this.description = "";
+        this.createdBy = "";
+        this.createdAt = null;
+        imageUrls = new ArrayList<>();
     }
 
     public int getPostId() {
@@ -71,23 +80,12 @@ public class PostSummary {
         this.authorId = authorId;
     }
 
-    public void setSavedIds(Set<Integer> savedIds) {
-        this.savedIds = savedIds;
-    }
-
     public List<String> getImageUrls() {
         return imageUrls;
     }
 
     public void setImageUrls(List<String> imageUrls) {
         this.imageUrls = imageUrls;
-    }
-
-    public PostSummary() {
-        this.description = "";
-        this.createdBy = "";
-        this.createdAt = null;
-        imageUrls = new ArrayList<>();
     }
 
     List<String> getImageUrls(Set<PostImage> postImages) {
@@ -158,11 +156,19 @@ public class PostSummary {
         this.createdByProfilePicUrl = createdByProfilePicUrl;
     }
 
-    public Set<Integer> getSavedIds() {
-        return savedIds;
+    public Boolean getHasLiked() {
+        return hasLiked;
     }
 
-    public void setSaveIds(Set<Integer> saveIds) {
-        this.savedIds = saveIds;
+    public void setHasLiked(Boolean hasLiked) {
+        this.hasLiked = hasLiked;
+    }
+
+    public Boolean getHasSaved() {
+        return hasSaved;
+    }
+
+    public void setHasSaved(Boolean hasSaved) {
+        this.hasSaved = hasSaved;
     }
 }
