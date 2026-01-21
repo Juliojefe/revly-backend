@@ -18,10 +18,7 @@ public class PostSummary {
     private String createdBy;
     private String createdByProfilePicUrl;
     private Instant createdAt;
-    private Set<Integer> likeIds;
     private int likeCount;
-    private Set<Integer> commentIds;
-    private int commentCount;
     private List<String> imageUrls;
     private Set<Integer> savedIds;
 
@@ -39,10 +36,7 @@ public class PostSummary {
         }
         this.description = post.getDescription();
         this.createdAt = post.getCreatedAt();
-        this.likeIds = getUserIds(post.getLikers());
-        this.likeCount = likeIds.size();
-        this.commentIds = post.getCommentIds();
-        this.commentCount = post.getComments().size();
+        this.likeCount = post.getLikers().size();
         this.imageUrls = getImageUrls(post.getPostImages());
         this.savedIds = getUserIds(post.getSavers());
     }
@@ -93,7 +87,6 @@ public class PostSummary {
         this.description = "";
         this.createdBy = "";
         this.createdAt = null;
-        likeIds = new HashSet<>();
         imageUrls = new ArrayList<>();
     }
 
@@ -149,14 +142,6 @@ public class PostSummary {
         this.createdAt = createdAt;
     }
 
-    public Set<Integer> getLikeIds() {
-        return likeIds;
-    }
-
-    public void setLikeIds(Set <Integer> likeIds) {
-        this.likeIds = likeIds;
-    }
-
     public int getLikeCount() {
         return likeCount;
     }
@@ -171,22 +156,6 @@ public class PostSummary {
 
     public void setCreatedByProfilePicUrl(String createdByProfilePicUrl) {
         this.createdByProfilePicUrl = createdByProfilePicUrl;
-    }
-
-    public Set<Integer> getCommentIds() {
-        return commentIds;
-    }
-
-    public void setCommentIds(Set<Integer> commentIds) {
-        this.commentIds = commentIds;
-    }
-
-    public int getCommentCount() {
-        return commentCount;
-    }
-
-    public void setCommentCount(int commentCount) {
-        this.commentCount = commentCount;
     }
 
     public Set<Integer> getSavedIds() {
