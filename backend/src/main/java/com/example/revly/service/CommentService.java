@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,12 +43,6 @@ public class CommentService {
     @Autowired
     private FileUploadService fileUploadService;
 
-    @Autowired
-    private UserService userService; // For admin check
-
-    @Autowired
-    private PostService postService; // If needed
-
     public CommentResponseDTO createComment(CommentCreateRequestDTO dto, MultipartFile[] images) throws IOException {
         Post post = postRepository.findById(dto.getPostId()).orElseThrow(() -> new RuntimeException("Post not found"));
         User user = userRepository.findById(dto.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
@@ -58,8 +51,7 @@ public class CommentService {
         comment.setContent(dto.getContent());
         comment.setUser(user);
         comment.setPost(post);
-        comment.setCreatedAt(dto.getCreatedAt() != null ? java.sql.Timestamp.from(dto.getCreatedAt()) : java.sql.Timestamp.from(Instant.now()));
-
+        comment.setCreatedAt(dto.getCreatedAt() != null ? dto.getCreatedAt() : Instant.now());
         comment = commentRepository.save(comment);
 
         if (images != null) {
@@ -73,10 +65,10 @@ public class CommentService {
                 }
             }
         }
-
         return mapToResponseDTO(comment);
     }
 
+    //  Only the owner of the comment can updateComment
     public CommentResponseDTO updateComment(CommentUpdateRequestDTO dto, MultipartFile[] newImages) throws IOException {
         Comment comment = commentRepository.findById(dto.getCommentId()).orElseThrow(() -> new RuntimeException("Comment not found"));
         User user = userRepository.findById(dto.getUserId()).orElseThrow(() -> new RuntimeException("User not found"));
@@ -90,7 +82,7 @@ public class CommentService {
         }
 
         // Handle images: remove those not in keep list
-        Set<CommentImage> currentImages = commentImageRepository.findByComment(comment);
+        List<CommentImage> currentImages = commentImageRepository.findByComment(comment);
         List<String> keepUrls = dto.getExistingImageUrlsToKeep() != null ? dto.getExistingImageUrlsToKeep() : new ArrayList<>();
         currentImages.removeIf(img -> !keepUrls.contains(img.getImageUrl()));
         commentImageRepository.deleteAll(currentImages.stream().filter(img -> !keepUrls.contains(img.getImageUrl())).collect(Collectors.toSet()));
@@ -112,11 +104,12 @@ public class CommentService {
         return mapToResponseDTO(comment);
     }
 
+    //  comments can be deleted by author, post owner, or admin
     public void deleteComment(Integer commentId, Integer userId) {
         Comment comment = commentRepository.findById(commentId).orElseThrow(() -> new RuntimeException("Comment not found"));
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!isAuthorizedToModify(comment, user)) {
+        if (!isAuthorizedToDelete(comment, user)) {
             throw new RuntimeException("Unauthorized");
         }
 
@@ -129,11 +122,16 @@ public class CommentService {
         return comments.map(this::mapToResponseDTO);
     }
 
-    private boolean isAuthorizedToModify(Comment comment, User user) {
+    private boolean isAuthorizedToDelete(Comment comment, User user) {
         boolean isOwner = comment.getUser().getUserId().equals(user.getUserId());
         boolean isAdmin = user.getUserRoles().getIsAdmin();
         boolean isPostOwner = comment.getPost().getUser().getUserId().equals(user.getUserId());
         return isOwner || isAdmin || isPostOwner;
+    }
+
+    private boolean isAuthorizedToModify(Comment comment, User user) {
+        boolean isOwner = comment.getUser().getUserId().equals(user.getUserId());
+        return isOwner;
     }
 
     private CommentResponseDTO mapToResponseDTO(Comment comment) {
@@ -142,7 +140,7 @@ public class CommentService {
         dto.setContent(comment.getContent());
         dto.setUserId(comment.getUser().getUserId());
         dto.setCreatedAt(comment.getCreatedAt());
-        Set<CommentImage> images = commentImageRepository.findByComment(comment);
+        List<CommentImage> images = commentImageRepository.findByComment(comment);
         dto.setImageUrls(images.stream().map(CommentImage::getImageUrl).collect(Collectors.toList()));
         return dto;
     }

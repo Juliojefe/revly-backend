@@ -1,16 +1,15 @@
 package com.example.revly.dto.response;
 
-import java.sql.Timestamp;
-import java.util.List;
+import java.time.Instant;import java.util.List;
 
 public class CommentResponseDTO {
     private Integer commentId;
     private String content;
     private Integer userId;
-    private Timestamp createdAt;
+    private Instant createdAt;
     private List<String> imageUrls;
 
-    public CommentResponseDTO(Integer commentId, String content, Integer userId, Timestamp createdAt, List<String> imageUrls) {
+    public CommentResponseDTO(Integer commentId, String content, Integer userId, Instant createdAt, List<String> imageUrls) {
         this.commentId = commentId;
         this.content = content;
         this.userId = userId;
@@ -44,11 +43,11 @@ public class CommentResponseDTO {
         this.userId = userId;
     }
 
-    public Timestamp getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(Timestamp createdAt) {
+    public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
 
