@@ -4,18 +4,12 @@ import java.time.Instant;import java.util.List;
 
 public class CommentResponseDTO {
     private Integer commentId;
+    private Integer authorId;
+    private String createdByName;
+    private String createdByProfilePicUrl;
     private String content;
-    private Integer userId;
-    private Instant createdAt;
     private List<String> imageUrls;
-
-    public CommentResponseDTO(Integer commentId, String content, Integer userId, Instant createdAt, List<String> imageUrls) {
-        this.commentId = commentId;
-        this.content = content;
-        this.userId = userId;
-        this.createdAt = createdAt;
-        this.imageUrls = imageUrls;
-    }
+    private Instant createdAt;
 
     public CommentResponseDTO() {}
 
@@ -27,6 +21,30 @@ public class CommentResponseDTO {
         this.commentId = commentId;
     }
 
+    public Integer getAuthorId() {
+        return authorId;
+    }
+
+    public void setAuthorId(Integer authorId) {
+        this.authorId = authorId;
+    }
+
+    public String getCreatedByName() {
+        return createdByName;
+    }
+
+    public void setCreatedByName(String createdByName) {
+        this.createdByName = createdByName;
+    }
+
+    public String getCreatedByProfilePicUrl() {
+        return createdByProfilePicUrl;
+    }
+
+    public void setCreatedByProfilePicUrl(String createdByProfilePicUrl) {
+        this.createdByProfilePicUrl = createdByProfilePicUrl;
+    }
+
     public String getContent() {
         return content;
     }
@@ -35,12 +53,12 @@ public class CommentResponseDTO {
         this.content = content;
     }
 
-    public Integer getUserId() {
-        return userId;
+    public List<String> getImageUrls() {
+        return imageUrls;
     }
 
-    public void setUserId(Integer userId) {
-        this.userId = userId;
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 
     public Instant getCreatedAt() {
@@ -49,13 +67,5 @@ public class CommentResponseDTO {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
-    }
-
-    public List<String> getImageUrls() {
-        return imageUrls;
-    }
-
-    public void setImageUrls(List<String> imageUrls) {
-        this.imageUrls = imageUrls;
     }
 }

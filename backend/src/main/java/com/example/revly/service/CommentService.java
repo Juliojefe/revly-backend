@@ -137,11 +137,13 @@ public class CommentService {
     private CommentResponseDTO mapToResponseDTO(Comment comment) {
         CommentResponseDTO dto = new CommentResponseDTO();
         dto.setCommentId(comment.getCommentId());
+        dto.setAuthorId(comment.getUser().getUserId());
+        dto.setCreatedByName(comment.getUser().getName());
+        dto.setCreatedByProfilePicUrl(comment.getUser().getProfilePic());
         dto.setContent(comment.getContent());
-        dto.setUserId(comment.getUser().getUserId());
-        dto.setCreatedAt(comment.getCreatedAt());
         List<CommentImage> images = commentImageRepository.findByComment(comment);
         dto.setImageUrls(images.stream().map(CommentImage::getImageUrl).collect(Collectors.toList()));
+        dto.setCreatedAt(comment.getCreatedAt());
         return dto;
     }
 }
