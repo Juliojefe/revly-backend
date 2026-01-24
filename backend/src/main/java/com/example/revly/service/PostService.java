@@ -43,7 +43,7 @@ public class PostService {
             throw new ResourceNotFoundException("Post not found with id: " + postId);
         }
         Post p = OptPost.get();
-        return new PostSummary(p);
+        return new PostSummary(p, false, false);
     }
 
     public Set<Integer> getAllPostIds() {
@@ -53,29 +53,6 @@ public class PostService {
             ids.add(p.getPostId());
         }
         return ids;
-    }
-
-    public Page<PostSummary> getExplorePosts(Pageable pageable, User u) {
-        Set<Integer> excludedUserIds = new HashSet<>();
-        for (User followedUser : u.getFollowing()) {
-            excludedUserIds.add(followedUser.getUserId());
-        }
-        excludedUserIds.add(u.getUserId()); // Add the current user to the excluded set
-        Page<Post> posts = postRepository.findByUserUserIdNotIn(excludedUserIds, pageable);
-        List<PostSummary> summaries = new ArrayList<>();
-        for (Post post : posts.getContent()) {
-            summaries.add(new PostSummary(post));
-        }
-        return new PageImpl<>(summaries, pageable, posts.getTotalElements());
-    }
-
-    public Page<PostSummary> getExplorePostsGuest(Pageable pageable) {
-        Page<Post> posts = postRepository.findAll(pageable);
-        List<PostSummary> summaries = new ArrayList<>();
-        for (Post post : posts.getContent()) {
-            summaries.add(new PostSummary(post));
-        }
-        return new PageImpl<>(summaries, pageable, posts.getTotalElements());
     }
 
     public List<Integer> getFollowingPostIds(User u) {

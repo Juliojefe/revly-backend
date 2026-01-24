@@ -1,7 +1,7 @@
 package com.example.revly.model;
 
 import jakarta.persistence.*;
-import java.security.Timestamp;
+import java.time.Instant;
 
 @Entity
 @Table(name = "comment")
@@ -23,7 +23,7 @@ public class Comment {
     private Post post;
 
     @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
-    private Timestamp createdAt;
+    private Instant createdAt;
 
     // Getters and setters
     public Integer getCommentId() {
@@ -58,11 +58,11 @@ public class Comment {
         this.post = post;
     }
 
-    public Timestamp getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(Timestamp createdAt) {
+    public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
 }

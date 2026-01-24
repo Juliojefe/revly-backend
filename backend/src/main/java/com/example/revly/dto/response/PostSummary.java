@@ -18,14 +18,12 @@ public class PostSummary {
     private String createdBy;
     private String createdByProfilePicUrl;
     private Instant createdAt;
-    private Set<Integer> likeIds;
     private int likeCount;
-    private Set<Integer> commentIds;
-    private int commentCount;
     private List<String> imageUrls;
-    private Set<Integer> savedIds;
+    private Boolean hasLiked;
+    private Boolean hasSaved;
 
-    public PostSummary(Post post) {
+    public PostSummary(Post post, Boolean hasLiked, Boolean hasSaved) {
         this.postId = post.getPostId();
         User user = post.getUser();
         if (user != null) {
@@ -39,12 +37,17 @@ public class PostSummary {
         }
         this.description = post.getDescription();
         this.createdAt = post.getCreatedAt();
-        this.likeIds = getUserIds(post.getLikers());
-        this.likeCount = likeIds.size();
-        this.commentIds = post.getCommentIds();
-        this.commentCount = post.getComments().size();
+        this.likeCount = post.getLikers().size();
         this.imageUrls = getImageUrls(post.getPostImages());
-        this.savedIds = getUserIds(post.getSavers());
+        this.hasLiked = hasLiked;
+        this.hasSaved = hasSaved;
+    }
+
+    public PostSummary() {
+        this.description = "";
+        this.createdBy = "";
+        this.createdAt = null;
+        imageUrls = new ArrayList<>();
     }
 
     public int getPostId() {
@@ -77,24 +80,12 @@ public class PostSummary {
         this.authorId = authorId;
     }
 
-    public void setSavedIds(Set<Integer> savedIds) {
-        this.savedIds = savedIds;
-    }
-
     public List<String> getImageUrls() {
         return imageUrls;
     }
 
     public void setImageUrls(List<String> imageUrls) {
         this.imageUrls = imageUrls;
-    }
-
-    public PostSummary() {
-        this.description = "";
-        this.createdBy = "";
-        this.createdAt = null;
-        likeIds = new HashSet<>();
-        imageUrls = new ArrayList<>();
     }
 
     List<String> getImageUrls(Set<PostImage> postImages) {
@@ -149,14 +140,6 @@ public class PostSummary {
         this.createdAt = createdAt;
     }
 
-    public Set<Integer> getLikeIds() {
-        return likeIds;
-    }
-
-    public void setLikeIds(Set <Integer> likeIds) {
-        this.likeIds = likeIds;
-    }
-
     public int getLikeCount() {
         return likeCount;
     }
@@ -173,27 +156,19 @@ public class PostSummary {
         this.createdByProfilePicUrl = createdByProfilePicUrl;
     }
 
-    public Set<Integer> getCommentIds() {
-        return commentIds;
+    public Boolean getHasLiked() {
+        return hasLiked;
     }
 
-    public void setCommentIds(Set<Integer> commentIds) {
-        this.commentIds = commentIds;
+    public void setHasLiked(Boolean hasLiked) {
+        this.hasLiked = hasLiked;
     }
 
-    public int getCommentCount() {
-        return commentCount;
+    public Boolean getHasSaved() {
+        return hasSaved;
     }
 
-    public void setCommentCount(int commentCount) {
-        this.commentCount = commentCount;
-    }
-
-    public Set<Integer> getSavedIds() {
-        return savedIds;
-    }
-
-    public void setSaveIds(Set<Integer> saveIds) {
-        this.savedIds = saveIds;
+    public void setHasSaved(Boolean hasSaved) {
+        this.hasSaved = hasSaved;
     }
 }
