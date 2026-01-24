@@ -183,6 +183,6 @@ public class AuthService {
         UserRoles ur = user.getUserRoles();
         Boolean isAdmin = ur.getIsAdmin();
         Boolean isMechanic =  ur.getIsMechanic();
-        return new AuthResponse(user.getName(), user.getEmail(), user.getProfilePic(), isGoogle, accessToken, refreshToken, isAdmin, isMechanic, user.getBiography());
+        return new AuthResponse(user.getName(), user.getUserId(), user.getEmail(), user.getProfilePic(), isGoogle, accessToken, refreshToken, isAdmin, isMechanic, user.getBiography());
     }
 }

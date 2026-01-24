@@ -3,6 +3,7 @@ package com.example.revly.dto.response;
 public class AuthResponse {
     private String message;
     private String name;
+    private Integer userId;
     private String email;
     private String profilePic;
     private boolean isGoogle;
@@ -13,8 +14,9 @@ public class AuthResponse {
     private String biography;
 
     // Constructor for success (message is omitted/null)
-    public AuthResponse(String name, String email, String profilePic, boolean isGoogle, String accessToken, String refreshToken, Boolean isAdmin, Boolean isMechanic, String biography) {
+    public AuthResponse(String name, Integer userId, String email, String profilePic, boolean isGoogle, String accessToken, String refreshToken, Boolean isAdmin, Boolean isMechanic, String biography) {
         this.name = name;
+        this.userId = userId;
         this.email = email;
         this.profilePic = profilePic;
         this.isGoogle = isGoogle;
@@ -28,6 +30,14 @@ public class AuthResponse {
     // Constructor for error (other fields are omitted/null)
     public AuthResponse(String message) {
         this.message = message;
+    }
+
+    public Integer getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Integer userId) {
+        this.userId = userId;
     }
 
     public String getBiography() {

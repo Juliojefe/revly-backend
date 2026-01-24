@@ -56,6 +56,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 
         if (authResponse != null && authResponse.getAccessToken() != null) {
             uriBuilder.queryParam("name", authResponse.getName());
+            uriBuilder.queryParam("userId", authResponse.getUserId());
             uriBuilder.queryParam("email", authResponse.getEmail());
             uriBuilder.queryParam("profilePic", authResponse.getProfilePic());
             uriBuilder.queryParam("isGoogle", authResponse.isGoogle());
