@@ -23,26 +23,6 @@ public class PostSummary {
     private Boolean hasLiked;
     private Boolean hasSaved;
 
-    public PostSummary(Post post, Boolean hasLiked, Boolean hasSaved) {
-        this.postId = post.getPostId();
-        User user = post.getUser();
-        if (user != null) {
-            this.authorId = user.getUserId();
-            this.createdBy = user.getName();
-            this.createdByProfilePicUrl = user.getProfilePic();
-        } else {
-            this.authorId = null;
-            this.createdBy = null;
-            this.createdByProfilePicUrl = null;
-        }
-        this.description = post.getDescription();
-        this.createdAt = post.getCreatedAt();
-        this.likeCount = post.getLikers().size();
-        this.imageUrls = getImageUrls(post.getPostImages());
-        this.hasLiked = hasLiked;
-        this.hasSaved = hasSaved;
-    }
-
     public PostSummary() {
         this.description = "";
         this.createdBy = "";

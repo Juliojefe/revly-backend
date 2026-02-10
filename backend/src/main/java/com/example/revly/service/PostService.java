@@ -43,7 +43,7 @@ public class PostService {
             throw new ResourceNotFoundException("Post not found with id: " + postId);
         }
         Post p = OptPost.get();
-        return new PostSummary(p, false, false);
+        return toPostSummaryDto(p, false, false);
     }
 
     public Set<Integer> getAllPostIds() {
@@ -195,14 +195,14 @@ public class PostService {
         post.setDescription(request.getDescription());
         post.setUser(u);
         post.setCreatedAt(request.getCreatedAt() != null ? request.getCreatedAt() : Instant.now());
-        Set<PostImage> postImages = new HashSet<>();
+        List<PostImage> postImages = new ArrayList<>();
         for (String imageUrl : request.getImages()) {
             PostImage postImage = new PostImage();
             postImage.setImageUrl(imageUrl);
             postImage.setPost(post);
             postImages.add(postImage);
         }
-        post.setImages(postImages);
+        post.setPostImages(postImages);
         Post savedPost = postRepository.save(post);
         return new CreatePostConfirmation(true, "Post uploaded successfully!");
     }
@@ -220,7 +220,7 @@ public class PostService {
         post.setDescription(requestImages.getDescription());
         post.setUser(u);
         post.setCreatedAt(requestImages.getCreatedAt() != null ? requestImages.getCreatedAt() : Instant.now());
-        Set<PostImage> postImages = new HashSet<>();
+        List<PostImage> postImages = new ArrayList<>();
         for (MultipartFile image : requestImages.getImages()) {
             String imageUrl = fileUploadService.uploadFile(image);
             PostImage postImage = new PostImage();
@@ -228,9 +228,37 @@ public class PostService {
             postImage.setPost(post);
             postImages.add(postImage);
         }
-        post.setImages(postImages);
+        post.setPostImages(postImages);
         Post savedPost = postRepository.save(post);
         return new CreatePostConfirmation(true, "Post uploaded successfully!");
     }
 
+    private PostSummary toPostSummaryDto(Post p, Boolean hasLiked, Boolean hasSaved) {
+        PostSummary summary = new PostSummary();
+        User user = p.getUser();
+        if (user != null) { //  user exists case
+            summary.setAuthorId(user.getUserId());
+            summary.setCreatedBy(user.getName());
+            summary.setCreatedByProfilePicUrl(user.getProfilePic());
+        } else {    //  user is null case such as when user has deleted their account
+            summary.setAuthorId(null);
+            summary.setCreatedBy(null);
+            summary.setCreatedByProfilePicUrl(null);
+        }
+
+        summary.setPostId(p.getPostId());
+        summary.setDescription(p.getDescription());
+        summary.setCreatedAt(p.getCreatedAt());
+        summary.setLikeCount(p.getLikers().size());
+
+        List<String> imageUrls = new ArrayList<>();
+        for (PostImage img : p.getPostImages()) {
+            imageUrls.add(img.getImageUrl());   //  putting imageUrls in a List
+        }
+        summary.setImageUrls(imageUrls);
+
+        summary.setHasLiked(hasLiked);
+        summary.setHasSaved(hasSaved);
+        return summary;
+    }
 }
