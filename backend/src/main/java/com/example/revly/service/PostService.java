@@ -37,13 +37,14 @@ public class PostService {
     private FileUploadService fileUploadService;
 
     @Transactional(readOnly = true)
-    public PostSummary getPostSummaryById(int postId) {
+    public PostSummary getPostSummaryById(int postId, User u) {
         Optional<Post> OptPost = postRepository.findById(postId);
         if (OptPost.isEmpty()) {
             throw new ResourceNotFoundException("Post not found with id: " + postId);
         }
         Post p = OptPost.get();
-        return toPostSummaryDto(p, false, false);
+        Boolean followingAuthor = p.getUser().getFollowers().contains(u);
+        return toPostSummaryDto(p, false, false, followingAuthor);
     }
 
     public Set<Integer> getAllPostIds() {
@@ -233,7 +234,7 @@ public class PostService {
         return new CreatePostConfirmation(true, "Post uploaded successfully!");
     }
 
-    private PostSummary toPostSummaryDto(Post p, Boolean hasLiked, Boolean hasSaved) {
+    private PostSummary toPostSummaryDto(Post p, Boolean hasLiked, Boolean hasSaved, Boolean followingAuthor) {
         PostSummary summary = new PostSummary();
         User user = p.getUser();
         if (user != null) { //  user exists case

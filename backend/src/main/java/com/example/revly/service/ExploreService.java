@@ -36,7 +36,8 @@ public class ExploreService {
         for (Post post : posts.getContent()) {
             Boolean hasLiked = post.getLikers().contains(u);
             Boolean hasSaved = post.getSavers().contains(u);
-            summaries.add(toPostSummaryDto(post, hasLiked, hasSaved));
+            Boolean followingAuthor = post.getUser().getFollowers().contains(u);
+            summaries.add(toPostSummaryDto(post, hasLiked, hasSaved, followingAuthor));
         }
         return new PageImpl<>(summaries, pageable, posts.getTotalElements());
     }
@@ -45,12 +46,12 @@ public class ExploreService {
         Page<Post> posts = postRepository.findAll(pageable);
         List<PostSummary> summaries = new ArrayList<>();
         for (Post post : posts.getContent()) {
-            summaries.add(toPostSummaryDto(post, false, false));
+            summaries.add(toPostSummaryDto(post, false, false, false));
         }
         return new PageImpl<>(summaries, pageable, posts.getTotalElements());
     }
 
-    private PostSummary toPostSummaryDto(Post p, Boolean hasLiked, Boolean hasSaved) {
+    private PostSummary toPostSummaryDto(Post p, Boolean hasLiked, Boolean hasSaved, Boolean followingAuthor) {
         PostSummary summary = new PostSummary();
         User user = p.getUser();
         if (user != null) { //  user exists case
@@ -76,6 +77,7 @@ public class ExploreService {
 
         summary.setHasLiked(hasLiked);
         summary.setHasSaved(hasSaved);
+        summary.setFollowingAuthor(followingAuthor);
         return summary;
     }
 }

@@ -1,6 +1,5 @@
 package com.example.revly.dto.response;
 
-import com.example.revly.model.Post;
 import com.example.revly.model.PostImage;
 import com.example.revly.model.User;
 
@@ -22,6 +21,7 @@ public class PostSummary {
     private List<String> imageUrls;
     private Boolean hasLiked;
     private Boolean hasSaved;
+    private Boolean followingAuthor;
 
     public PostSummary() {
         this.description = "";
@@ -32,6 +32,14 @@ public class PostSummary {
 
     public int getPostId() {
         return postId;
+    }
+
+    public Boolean getFollowingAuthor() {
+        return followingAuthor;
+    }
+
+    public void setFollowingAuthor(Boolean followingAuthor) {
+        this.followingAuthor = followingAuthor;
     }
 
     public void setPostId(int postId) {
