@@ -3,7 +3,9 @@ package com.example.revly.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -34,7 +36,7 @@ public class Post {
     private Set<User> likers = new HashSet<>();
 
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<PostImage> images = new HashSet<>();
+    private List<PostImage> images = new ArrayList<>();
 
     @OneToMany(mappedBy = "post")
     @JsonIgnore
@@ -49,11 +51,11 @@ public class Post {
         this.postId = postId;
     }
 
-    public Set<PostImage> getPostImages() {
+    public List<PostImage> getPostImages() {
         return images;
     }
 
-    public void setPostImages(Set<PostImage> images) {
+    public void setPostImages(List<PostImage> images) {
         this.images = images;
     }
 
@@ -95,14 +97,6 @@ public class Post {
 
     public void setLikers(Set<User> likers) {
         this.likers = likers;
-    }
-
-    public Set<PostImage> getImages() {
-        return images;
-    }
-
-    public void setImages(Set<PostImage> images) {
-        this.images = images;
     }
 
     public Set<Comment> getComments() {

@@ -18,6 +18,7 @@ import java.security.Principal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @RestController
@@ -31,8 +32,9 @@ public class PostController {
     private UserRepository userRepository;
 
     @GetMapping("/{id}")
-    public ResponseEntity<PostSummary> getPostById(@PathVariable("id") int postId) {
-        return ResponseEntity.ok(postService.getPostSummaryById(postId));
+    public ResponseEntity<PostSummary> getPostById(@PathVariable("id") int postId, Principal principal) {
+        User u = userRepository.findByEmail(principal.getName()).orElse(null);
+        return ResponseEntity.ok(postService.getPostSummaryById(postId, u));
     }
 
     @GetMapping("/all-ids")

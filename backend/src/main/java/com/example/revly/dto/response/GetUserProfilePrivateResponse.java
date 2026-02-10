@@ -6,6 +6,8 @@ import com.example.revly.model.User;
 import java.util.HashSet;
 import java.util.Set;
 
+
+//  NOTE this entire file need redoing
 public class GetUserProfilePrivateResponse {
     private String name;
     private boolean isMechanic;
@@ -115,7 +117,7 @@ public class GetUserProfilePrivateResponse {
         try {
             Set<PostSummary> pSum = new HashSet<>();
             for (Post p : posts) {
-                pSum.add(new PostSummary(p, false, false));
+                pSum.add(new PostSummary());
             }
             return pSum;
         } catch (Exception e) {

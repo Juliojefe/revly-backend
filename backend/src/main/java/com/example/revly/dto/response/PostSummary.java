@@ -1,6 +1,5 @@
 package com.example.revly.dto.response;
 
-import com.example.revly.model.Post;
 import com.example.revly.model.PostImage;
 import com.example.revly.model.User;
 
@@ -22,26 +21,7 @@ public class PostSummary {
     private List<String> imageUrls;
     private Boolean hasLiked;
     private Boolean hasSaved;
-
-    public PostSummary(Post post, Boolean hasLiked, Boolean hasSaved) {
-        this.postId = post.getPostId();
-        User user = post.getUser();
-        if (user != null) {
-            this.authorId = user.getUserId();
-            this.createdBy = user.getName();
-            this.createdByProfilePicUrl = user.getProfilePic();
-        } else {
-            this.authorId = null;
-            this.createdBy = null;
-            this.createdByProfilePicUrl = null;
-        }
-        this.description = post.getDescription();
-        this.createdAt = post.getCreatedAt();
-        this.likeCount = post.getLikers().size();
-        this.imageUrls = getImageUrls(post.getPostImages());
-        this.hasLiked = hasLiked;
-        this.hasSaved = hasSaved;
-    }
+    private Boolean followingAuthor;
 
     public PostSummary() {
         this.description = "";
@@ -52,6 +32,14 @@ public class PostSummary {
 
     public int getPostId() {
         return postId;
+    }
+
+    public Boolean getFollowingAuthor() {
+        return followingAuthor;
+    }
+
+    public void setFollowingAuthor(Boolean followingAuthor) {
+        this.followingAuthor = followingAuthor;
     }
 
     public void setPostId(int postId) {
