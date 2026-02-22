@@ -123,13 +123,16 @@ public class UserService {
         String oldPassword = request.getOldPassword().trim();
         String storedHashedPassword = tempUser.getPassword().trim();
         String newPassword = request.getNewPassword().trim();
-        if (!passwordEncoder.matches(oldPassword, storedHashedPassword)) {
+        String salt = tempUser.getEmail().trim();
+        String oldPassWordWithSalt = oldPassword + salt;
+        if (!passwordEncoder.matches(oldPassWordWithSalt, storedHashedPassword)) {
             throw new UnauthorizedException("Incorrect old password");
         }
         if (!isValidPassword(newPassword)) {
             throw new BadRequestException("Invalid new password");
         }
-        tempUser.setPassword(passwordEncoder.encode(newPassword).trim());
+        String newPasswordWithSalt = newPassword + salt;
+        tempUser.setPassword(passwordEncoder.encode(newPasswordWithSalt));
         userRepository.save(tempUser);
     }
 
