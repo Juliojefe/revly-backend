@@ -21,6 +21,8 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -41,6 +43,7 @@ public class AuthService {
         String email = request.getEmail() != null ? request.getEmail().trim() : "";
         String password = request.getPassword() != null ? request.getPassword().trim() : "";
         String confirmPassword = request.getConfirmPassword() != null ? request.getConfirmPassword().trim() : "";
+        String salt = email;
         String name = request.getName() != null ? request.getName().trim() : "";
         String profilePic = request.getProfilePic() != null ? request.getProfilePic().trim() : getDefaultProfilePic();
         String biography = request.getBiography() != null ? request.getBiography().trim() : "";
@@ -53,6 +56,9 @@ public class AuthService {
         }
         if (!isValidPassword(password)) {
             return new AuthResponse("Invalid password:\n• At least 8 characters long\n• At least one uppercase letter\n• At least one lowercase letter\n• At least one number\n• At least one special character");
+        }
+        if (!Objects.equals(password, confirmPassword)) {
+            return new AuthResponse("Passwords must match");
         }
         if (!email.contains("@") || email.length() < 4) {
             return new AuthResponse("Invalid email");
@@ -68,7 +74,8 @@ public class AuthService {
         newUser.setEmail(email);
         newUser.setName(name);
         newUser.setProfilePic(profilePic);
-        newUser.setPassword(passwordEncoder.encode(password));
+        String saltedAndHashed = passwordEncoder.encode(password + salt);
+        newUser.setPassword(saltedAndHashed);
         newUser.setGoogleId(null);
         newUser.setBiography(biography);
         initializeUserCollections(newUser);
@@ -112,7 +119,7 @@ public class AuthService {
         String email = loginRequest.getEmail() != null ? loginRequest.getEmail().trim() : "";
         String password = loginRequest.getPassword() != null ? loginRequest.getPassword().trim() : "";
         Optional<User> userOpt = userRepository.findByEmail(email);
-        if (userOpt.isEmpty() || !passwordEncoder.matches(password, userOpt.get().getPassword())) {
+        if (userOpt.isEmpty() || !passwordEncoder.matches(password + email, userOpt.get().getPassword())) {
             return new AuthResponse("Invalid email or password");
         }
         User user = userOpt.get();
