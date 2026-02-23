@@ -50,7 +50,8 @@ public class SecurityConfig {
             "/api/user/{id}/profile/public",
             "/api/user/all-ids",
             "/api/comment/post/{postId}",
-            "/ws-chat/**"  // Permit WebSocket handshake (auth checked via JWT filter)
+            "/ws-chat/**", // Permit WebSocket handshake (auth checked via JWT filter)
+            "/api/geocode/**"
     );
 
     @Autowired
