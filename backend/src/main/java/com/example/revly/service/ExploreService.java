@@ -203,10 +203,12 @@ public class ExploreService {
             summary.setAuthorId(user.getUserId());
             summary.setCreatedBy(user.getName());
             summary.setCreatedByProfilePicUrl(user.getProfilePic());
+            summary.setAuthorIsMechanic(user.getUserRoles().getIsMechanic());
         } else {    //  user is null case such as when user has deleted their account
             summary.setAuthorId(null);
             summary.setCreatedBy(null);
             summary.setCreatedByProfilePicUrl(null);
+            summary.setAuthorIsMechanic(false);
         }
 
         summary.setPostId(p.getPostId());
