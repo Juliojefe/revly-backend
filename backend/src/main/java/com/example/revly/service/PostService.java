@@ -10,9 +10,6 @@ import com.example.revly.model.PostImage;
 import com.example.revly.dto.response.CreatePostConfirmation;
 import com.example.revly.model.User;
 import com.example.revly.repository.UserRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.example.revly.repository.PostRepository;
@@ -38,13 +35,24 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public PostSummary getPostSummaryById(int postId, User u) {
+
         Optional<Post> OptPost = postRepository.findById(postId);
         if (OptPost.isEmpty()) {
             throw new ResourceNotFoundException("Post not found with id: " + postId);
         }
         Post p = OptPost.get();
-        Boolean followingAuthor = p.getUser().getFollowers().contains(u);
-        return toPostSummaryDto(p, false, false, followingAuthor);
+
+        Boolean followingAuthor, hasLiked, hasSaved;
+        if (u != null) {
+         followingAuthor = p.getUser().getFollowers().contains(u);
+         hasLiked = u.getLikedPosts().contains(p);
+         hasSaved = u.getSavedPosts().contains(p);
+        } else {
+            followingAuthor = false;
+            hasLiked = false;
+            hasSaved = false;
+        }
+        return toPostSummaryDto(p, hasLiked, hasSaved, followingAuthor);
     }
 
     public Set<Integer> getAllPostIds() {
@@ -260,6 +268,7 @@ public class PostService {
 
         summary.setHasLiked(hasLiked);
         summary.setHasSaved(hasSaved);
+        summary.setAuthorIsMechanic(p.getUser().getUserRoles().getIsMechanic());
         return summary;
     }
 }
