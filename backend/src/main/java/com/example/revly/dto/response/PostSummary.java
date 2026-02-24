@@ -22,12 +22,21 @@ public class PostSummary {
     private Boolean hasLiked;
     private Boolean hasSaved;
     private Boolean followingAuthor;
+    private Boolean authorIsMechanic;
 
     public PostSummary() {
         this.description = "";
         this.createdBy = "";
         this.createdAt = null;
         imageUrls = new ArrayList<>();
+    }
+
+    public Boolean getAuthorIsMechanic() {
+        return authorIsMechanic;
+    }
+
+    public void setAuthorIsMechanic(Boolean authorIsMechanic) {
+        this.authorIsMechanic = authorIsMechanic;
     }
 
     public int getPostId() {
