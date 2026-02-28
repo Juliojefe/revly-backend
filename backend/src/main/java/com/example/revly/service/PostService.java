@@ -38,13 +38,18 @@ public class PostService {
 
         Optional<Post> OptPost = postRepository.findById(postId);
         if (OptPost.isEmpty()) {
-            throw new ResourceNotFoundException("Post not found with id: " + postId);
+            return new PostSummary();
         }
         Post p = OptPost.get();
 
         Boolean followingAuthor, hasLiked, hasSaved;
+        User postOwner = p.getUser();
         if (u != null) {
-         followingAuthor = p.getUser().getFollowers().contains(u);
+            if (postOwner == null) {
+                followingAuthor = false;
+            } else {
+                followingAuthor = p.getUser().getFollowers().contains(u);
+            }
          hasLiked = u.getLikedPosts().contains(p);
          hasSaved = u.getSavedPosts().contains(p);
         } else {
