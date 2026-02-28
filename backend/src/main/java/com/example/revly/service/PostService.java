@@ -36,22 +36,30 @@ public class PostService {
     @Transactional(readOnly = true)
     public PostSummary getPostSummaryById(int postId, User u) {
 
-        Optional<Post> OptPost = postRepository.findById(postId);
-        if (OptPost.isEmpty()) {
-            throw new ResourceNotFoundException("Post not found with id: " + postId);
+        Optional<Post> optPost = postRepository.findById(postId);
+        if (optPost.isEmpty()) {
+            return new PostSummary();
         }
-        Post p = OptPost.get();
 
-        Boolean followingAuthor, hasLiked, hasSaved;
+        Post p = optPost.get();
+        User author = p.getUser();
+
+        boolean followingAuthor = false;
+        boolean hasLiked = false;
+        boolean hasSaved = false;
+
         if (u != null) {
-         followingAuthor = p.getUser().getFollowers().contains(u);
-         hasLiked = u.getLikedPosts().contains(p);
-         hasSaved = u.getSavedPosts().contains(p);
-        } else {
-            followingAuthor = false;
-            hasLiked = false;
-            hasSaved = false;
+            if (author != null && author.getFollowers() != null) {
+                followingAuthor = author.getFollowers().contains(u);
+            }
+            if (u.getLikedPosts() != null) {
+                hasLiked = u.getLikedPosts().contains(p);
+            }
+            if (u.getSavedPosts() != null) {
+                hasSaved = u.getSavedPosts().contains(p);
+            }
         }
+
         return toPostSummaryDto(p, hasLiked, hasSaved, followingAuthor);
     }
 
@@ -242,33 +250,40 @@ public class PostService {
         return new CreatePostConfirmation(true, "Post uploaded successfully!");
     }
 
-    private PostSummary toPostSummaryDto(Post p, Boolean hasLiked, Boolean hasSaved, Boolean followingAuthor) {
+    private PostSummary toPostSummaryDto(Post p, boolean hasLiked, boolean hasSaved, boolean followingAuthor) {
         PostSummary summary = new PostSummary();
-        User user = p.getUser();
-        if (user != null) { //  user exists case
-            summary.setAuthorId(user.getUserId());
-            summary.setCreatedBy(user.getName());
-            summary.setCreatedByProfilePicUrl(user.getProfilePic());
-        } else {    //  user is null case such as when user has deleted their account
+        User author = p.getUser();
+
+        if (author != null) {
+            summary.setAuthorId(author.getUserId());
+            summary.setCreatedBy(author.getName());
+            summary.setCreatedByProfilePicUrl(author.getProfilePic());
+            boolean  isMechanic = author.getUserRoles() != null&& Boolean.TRUE.equals(author.getUserRoles().getIsMechanic());
+            summary.setAuthorIsMechanic(isMechanic);
+        } else {
             summary.setAuthorId(null);
             summary.setCreatedBy(null);
             summary.setCreatedByProfilePicUrl(null);
+            summary.setAuthorIsMechanic(false);
         }
 
         summary.setPostId(p.getPostId());
         summary.setDescription(p.getDescription());
         summary.setCreatedAt(p.getCreatedAt());
-        summary.setLikeCount(p.getLikers().size());
+        summary.setLikeCount(p.getLikers() == null ? 0 : p.getLikers().size());
 
         List<String> imageUrls = new ArrayList<>();
-        for (PostImage img : p.getPostImages()) {
-            imageUrls.add(img.getImageUrl());   //  putting imageUrls in a List
+        if (p.getPostImages() != null) {
+            for (PostImage img : p.getPostImages()) {
+                if (img != null && img.getImageUrl() != null) {
+                    imageUrls.add(img.getImageUrl());
+                }
+            }
         }
         summary.setImageUrls(imageUrls);
-
         summary.setHasLiked(hasLiked);
         summary.setHasSaved(hasSaved);
-        summary.setAuthorIsMechanic(p.getUser().getUserRoles().getIsMechanic());
+        summary.setFollowingAuthor(followingAuthor);
         return summary;
     }
 }
