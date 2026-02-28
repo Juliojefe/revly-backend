@@ -33,7 +33,12 @@ public class PostController {
 
     @GetMapping("/{id}")
     public ResponseEntity<PostSummary> getPostById(@PathVariable("id") int postId, Principal principal) {
-        User u = userRepository.findByEmail(principal.getName()).orElse(null);
+        User u;
+        if (principal != null) {
+            u = userRepository.findByEmail(principal.getName()).orElse(null);
+        } else {
+            u = null;
+        }
         return ResponseEntity.ok(postService.getPostSummaryById(postId, u));
     }
 
