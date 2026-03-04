@@ -7,6 +7,7 @@ import com.example.revly.dto.response.AuthResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -21,6 +22,9 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 
     @Autowired
     private AuthService authService;
+
+    @Value("${app.cors.allowed-origin}")
+    private String allowedOrigin;
 
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
         try {
@@ -51,7 +55,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 
     // Helper method to build the redirect URL for success or internal errors
     private void buildRedirect(HttpServletResponse response, AuthResponse authResponse) throws IOException {
-        String baseUrl = "http://localhost:3000/auth-callback";
+        String baseUrl = allowedOrigin + "/auth-callback";
         UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(baseUrl);
 
         if (authResponse != null && authResponse.getAccessToken() != null) {
