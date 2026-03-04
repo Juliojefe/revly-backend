@@ -79,7 +79,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 
     // Helper method for error redirects (e.g., attribute missing or other exceptions)
     private void buildErrorRedirect(HttpServletResponse response, String errorMessage) throws IOException {
-        String baseUrl = "http://localhost:3000/auth-callback";
+        String baseUrl = allowedOrigin + "/auth-callback";
         UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(baseUrl)
                 .queryParam("error", errorMessage != null ? errorMessage : "An unexpected error occurred");
         response.sendRedirect(uriBuilder.toUriString());
