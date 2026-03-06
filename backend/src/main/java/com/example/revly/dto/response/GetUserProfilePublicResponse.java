@@ -18,6 +18,7 @@ public class GetUserProfilePublicResponse {
     private int followerCount;
     private int followingCount;
     private String profilePicUrl;
+    private String biography;
 
     public GetUserProfilePublicResponse() {
         this.name = "";
@@ -30,6 +31,7 @@ public class GetUserProfilePublicResponse {
         this.followerCount = 0;
         this.followingCount = 0;
         this.profilePicUrl = "";
+        this.biography = "";
     }
 
     public GetUserProfilePublicResponse(User u) {
@@ -43,6 +45,7 @@ public class GetUserProfilePublicResponse {
         this.followerCount = followerIds.size();
         this.followingCount = followingIds.size();
         this.profilePicUrl = u.getProfilePic();
+        this.biography = u.getBiography();
     }
 
     private Set<Integer> getUserIds(Set<User> users) {
@@ -147,5 +150,13 @@ public class GetUserProfilePublicResponse {
 
     public void setFollowingCount(int followingCount) {
         this.followingCount = followingCount;
+    }
+
+    public String getBiography() {
+        return biography;
+    }
+
+    public void setBiography(String biography) {
+        this.biography = biography;
     }
 }
