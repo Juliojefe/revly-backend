@@ -10,6 +10,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/user")
@@ -87,6 +90,12 @@ public class UserController {
     public ResponseEntity<Boolean> updateProfilePic(@RequestBody UpdateProfilePicRequest request) {
         userService.updateProfilePic(request);
         return ResponseEntity.ok(true);
+    }
+
+    @PostMapping("/update-profile-pic/upload")
+    public ResponseEntity<String> uploadProfilePic(@RequestParam("userId") int userId,
+            @RequestParam("file") MultipartFile file) throws IOException {
+        return ResponseEntity.ok(userService.uploadProfilePic(userId, file));
     }
 
 
