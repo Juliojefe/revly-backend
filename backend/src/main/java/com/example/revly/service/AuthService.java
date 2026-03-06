@@ -14,6 +14,7 @@ import com.example.revly.model.User;
 import com.example.revly.model.UserRoles;
 import com.example.revly.repository.RefreshTokenRepository;
 import com.example.revly.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -180,35 +181,32 @@ public class AuthService {
         user.setUserRoles(userRoles);
     }
 
-    public RefreshResponse refreshAccessToken(RefreshRequest refreshRequest, Principal principal) {
+    @Transactional
+    public RefreshResponse refreshAccessToken(RefreshRequest refreshRequest) {
         String refreshToken = refreshRequest.getRefreshToken();
-        boolean validRefreshToken = jwtTokenProvider.validateToken(refreshToken);
-        if (!validRefreshToken) {
-            return new RefreshResponse(false);  //  not valid token
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return new RefreshResponse(false); // missing token
         }
+
         Optional<RefreshToken> rtOptional = refreshTokenRepository.findByToken(refreshToken);
-        if (!rtOptional.isPresent()) {
-            return new RefreshResponse(false);  //  token does not match existing one
+        if (rtOptional.isEmpty()) {
+            return new RefreshResponse(false); // unknown token
         }
+
         RefreshToken rt = rtOptional.get();
-        Instant expiryDate = rt.getExpiryDate();
-        if (expiryDate.isBefore(Instant.now())) {
-            return new RefreshResponse(false);  // token is expired
+        if (rt.getExpiryDate().isBefore(Instant.now())) {
+            return new RefreshResponse(false);  // must not be expired
         }
-        //  check if token belongs to user
-        Optional<User> optionalUser = userRepository.findByEmail(principal.getName());
-        if (optionalUser.isEmpty()) {
-            return new RefreshResponse(false);
+        //  Must be valid
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            return new RefreshResponse(false);  //  must be valid
         }
-        User u = optionalUser.get();
-        if (!u.getUserId().equals(rt.getUser().getUserId())) {
-            return new RefreshResponse(false);
-        }
-        //  all checks passed create new token and return it
+
+        // issue a new access token for the user tied to this refresh token
+        User u = rt.getUser();
         String newAccessToken = jwtTokenProvider.createAccessToken(u.getEmail(), u.getUserId());
         return new RefreshResponse(newAccessToken);
     }
-
     private AuthResponse createSuccessResponse(User user, boolean isGoogle) {
         String accessToken = jwtTokenProvider.createAccessToken(user.getEmail(), user.getUserId());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail(), user.getUserId());
