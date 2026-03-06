@@ -18,7 +18,9 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -32,6 +34,9 @@ public class UserService {
 
     @Autowired
     private UserRolesRepository userRolesRepository;
+
+    @Autowired
+    private FileUploadService fileUploadService;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -177,6 +182,21 @@ public class UserService {
         userRepository.save(tempUser);
     }
 
+    public String uploadProfilePic(int userId, MultipartFile file) throws IOException {
+        Optional<User> user = userRepository.findById(userId);
+        if (user.isEmpty()) {
+            throw new ResourceNotFoundException("User not found with id: " + userId);
+        }
+
+        String url = fileUploadService.uploadFile(file);
+
+        User tempUser = user.get();
+        tempUser.setProfilePic(url);
+        userRepository.save(tempUser);
+
+        return url;
+    }
+
 
     public Boolean updateBio(UpdateBioRequest request) {
         Optional<User> user = userRepository.findById(request.getUserId());
@@ -184,7 +204,7 @@ public class UserService {
             throw new ResourceNotFoundException("User not found with id: " + request.getUserId());
         }
         User tempUser = user.get();
-        tempUser.setProfilePic(request.getNewBio());
+        tempUser.setBiography(request.getNewBio());
         userRepository.save(tempUser);
         return true;
     }
