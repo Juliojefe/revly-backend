@@ -1,15 +1,19 @@
 package com.example.revly.controller;
 
 import com.example.revly.dto.request.GoogleUserRegisterRequest;
+import com.example.revly.dto.request.RefreshRequest;
 import com.example.revly.dto.request.UserLoginRequest;
 import com.example.revly.dto.request.UserRegisterRequest;
 import com.example.revly.dto.response.AuthResponse;
+import com.example.revly.dto.response.RefreshResponse;
+import com.example.revly.model.User;
 import com.example.revly.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.util.Map;
 
 @RestController
@@ -57,5 +61,10 @@ public class AuthController {
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(resp);
         }
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<RefreshResponse> refreshAccessToken(@RequestBody RefreshRequest refreshRequest, Principal principal) {
+        return authService.refreshAccessToken(refreshRequest, principal);
     }
 }
