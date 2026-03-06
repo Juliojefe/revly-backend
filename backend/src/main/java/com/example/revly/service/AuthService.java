@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.Principal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
@@ -177,6 +178,35 @@ public class AuthService {
         userRoles.setIsAdmin(false);
         userRoles.setIsMechanic(false);
         user.setUserRoles(userRoles);
+    }
+
+    public RefreshResponse refreshAccessToken(RefreshRequest refreshRequest, Principal principal) {
+        String refreshToken = refreshRequest.getRefreshToken();
+        boolean validRefreshToken = jwtTokenProvider.validateToken(refreshToken);
+        if (!validRefreshToken) {
+            return new RefreshResponse(false);  //  not valid token
+        }
+        Optional<RefreshToken> rtOptional = refreshTokenRepository.findByToken(refreshToken);
+        if (!rtOptional.isPresent()) {
+            return new RefreshResponse(false);  //  token does not match existing one
+        }
+        RefreshToken rt = rtOptional.get();
+        Instant expiryDate = rt.getExpiryDate();
+        if (expiryDate.isBefore(Instant.now())) {
+            return new RefreshResponse(false);  // token is expired
+        }
+        //  check if token belongs to user
+        Optional<User> optionalUser = userRepository.findByEmail(principal.getName());
+        if (optionalUser.isEmpty()) {
+            return new RefreshResponse(false);
+        }
+        User u = optionalUser.get();
+        if (!u.getUserId().equals(rt.getUser().getUserId())) {
+            return new RefreshResponse(false);
+        }
+        //  all checks passed create new token and return it
+        String newAccessToken = jwtTokenProvider.createAccessToken(u.getEmail(), u.getUserId());
+        return new RefreshResponse(newAccessToken);
     }
 
     private AuthResponse createSuccessResponse(User user, boolean isGoogle) {
