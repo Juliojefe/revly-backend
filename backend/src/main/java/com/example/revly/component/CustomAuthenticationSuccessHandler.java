@@ -41,7 +41,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 
             // Try login first
             AuthResponse resp = authService.googleLogin(googleId);
-            // If login fails (no token), auto-register
+            // If login fails (no no token), auto-register
             if (resp.getAccessToken() == null) {
                 GoogleUserRegisterRequest registerRequest =
                         new GoogleUserRegisterRequest(googleId, email, name, finalProfilePic);
@@ -68,6 +68,9 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
             uriBuilder.queryParam("refreshToken", authResponse.getRefreshToken());
             uriBuilder.queryParam("isAdmin", authResponse.getIsAdmin());
             uriBuilder.queryParam("isMechanic", authResponse.getIsMechanic());
+            uriBuilder.queryParam("biography", authResponse.getBiography());
+            uriBuilder.queryParam("accessTokenExpiresAt", authResponse.getAccessTokenExpiresAt());
+            uriBuilder.queryParam("refreshTokenExpiresAt", authResponse.getRefreshTokenExpiresAt());
         } else {
             String message = (authResponse != null && authResponse.getMessage() != null)
                     ? authResponse.getMessage() : "An unexpected error occurred";

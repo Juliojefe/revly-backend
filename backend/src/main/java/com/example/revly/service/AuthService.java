@@ -149,37 +149,30 @@ public class AuthService {
         if (refreshToken == null || refreshToken.isBlank()) {
             return new RefreshResponse(false, "Missing refresh token");
         }
-
         Optional<RefreshToken> rtOptional = refreshTokenRepository.findByToken(refreshToken);
         if (rtOptional.isEmpty()) {
             return new RefreshResponse(false, "Unknown refresh token");
         }
-
         RefreshToken rt = rtOptional.get();
         if (rt.getExpiryDate().isBefore(Instant.now())) {
             return new RefreshResponse(false, "Refresh token expired");
         }
-
         // Must be valid
         if (!jwtTokenProvider.validateToken(refreshToken)) {
             return new RefreshResponse(false, "Invalid refresh token");
         }
-
         // Delete old refresh token
         refreshTokenRepository.delete(rt);
-
         // Issue new access and refresh tokens for the user
         User u = rt.getUser();
         String newAccessToken = jwtTokenProvider.createAccessToken(u.getEmail(), u.getUserId());
         String newRefreshToken = jwtTokenProvider.createRefreshToken(u.getEmail(), u.getUserId());
-
         // Persist new refresh token
         RefreshToken newRt = new RefreshToken();
         newRt.setToken(newRefreshToken);
         newRt.setUser(u);
         newRt.setExpiryDate(jwtTokenProvider.getExpiration(newRefreshToken).toInstant());
         refreshTokenRepository.save(newRt);
-
         return new RefreshResponse(newAccessToken, newRefreshToken);
     }
 

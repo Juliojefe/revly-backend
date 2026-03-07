@@ -125,4 +125,36 @@ public class AuthResponse {
     public void setIsAdmin(Boolean admin) {
         isAdmin = admin;
     }
+
+    public Boolean getMechanic() {
+        return isMechanic;
+    }
+
+    public void setMechanic(Boolean mechanic) {
+        isMechanic = mechanic;
+    }
+
+    public Boolean getAdmin() {
+        return isAdmin;
+    }
+
+    public void setAdmin(Boolean admin) {
+        isAdmin = admin;
+    }
+
+    public long getAccessTokenExpiresAt() {
+        return accessTokenExpiresAt;
+    }
+
+    public void setAccessTokenExpiresAt(long accessTokenExpiresAt) {
+        this.accessTokenExpiresAt = accessTokenExpiresAt;
+    }
+
+    public long getRefreshTokenExpiresAt() {
+        return refreshTokenExpiresAt;
+    }
+
+    public void setRefreshTokenExpiresAt(long refreshTokenExpiresAt) {
+        this.refreshTokenExpiresAt = refreshTokenExpiresAt;
+    }
 }
