@@ -12,8 +12,22 @@ import java.util.Date;
 public class JwtTokenProvider {
 
     private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256); // Secure key for signing
-    private final long accessTokenValidity = 3600000; // 1 hour
-    private final long refreshTokenValidity = 604800000; // 7 days
+
+    // For production/testing - uncomment one set below
+    // Short durations for quick testing
+     private final long accessTokenValidity = 30000; // 30 seconds
+//     private final long refreshTokenValidity = 60000; // 1 minute
+
+    // Medium durations for testing
+    // private final long accessTokenValidity = 60000; // 1 minute
+    // private final long refreshTokenValidity = 120000; // 2 minutes
+
+    // Long durations for testing (refresh max 5 min)
+//    private final long accessTokenValidity = 120000; // 2 minutes
+    private final long refreshTokenValidity = 300000; // 5 minutes
+
+//    private final long accessTokenValidity = 3600000; // 1 hour
+//    private final long refreshTokenValidity = 604800000; // 7 days
 
     // Generate access token
     public String createAccessToken(String email, int userId) {
@@ -64,6 +78,16 @@ public class JwtTokenProvider {
         try {
             return Jwts.parserBuilder().setSigningKey(key).build()
                     .parseClaimsJws(token).getBody().get("userId", Integer.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // Get expiration from token
+    public Date getExpiration(String token) {
+        try {
+            return Jwts.parserBuilder().setSigningKey(key).build()
+                    .parseClaimsJws(token).getBody().getExpiration();
         } catch (Exception e) {
             return null;
         }
