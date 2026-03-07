@@ -14,16 +14,15 @@ import com.example.revly.model.User;
 import com.example.revly.model.UserRoles;
 import com.example.revly.repository.RefreshTokenRepository;
 import com.example.revly.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.Principal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class AuthService {
@@ -137,28 +136,44 @@ public class AuthService {
         return createSuccessResponse(user, true);
     }
 
-    public RefreshResponse refreshToken(RefreshRequest refreshRequest) {
-        String refreshToken = refreshRequest.getRefreshToken();
-        Optional<RefreshToken> tokenOpt = refreshTokenRepository.findByToken(refreshToken);
-        if (tokenOpt.isEmpty()) {
-            throw new UnauthorizedException("Token not valid");
-        }
-        RefreshToken tokenEntity = tokenOpt.get();
-        if (tokenEntity.getExpiryDate().isBefore(Instant.now())) {
-            refreshTokenRepository.deleteByToken(refreshToken);
-            throw new UnauthorizedException("Token not valid");
-        }
-        User user = tokenEntity.getUser();
-        String newAccessToken = jwtTokenProvider.createAccessToken(user.getEmail(), user.getUserId());
-        return new RefreshResponse(newAccessToken);
-    }
-
     private boolean isValidPassword(String password) {
         if (password == null || password.length() < 8) {
             return false;
         }
         String passwordRegex = "^(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)(?=.*[!@#$%^&*()_\\+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]).{8,}$";
         return password.matches(passwordRegex);
+    }
+
+    public RefreshResponse refreshAccessToken(RefreshRequest refreshRequest) {
+        String refreshToken = refreshRequest.getRefreshToken();
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return new RefreshResponse(false, "Missing refresh token");
+        }
+        Optional<RefreshToken> rtOptional = refreshTokenRepository.findByToken(refreshToken);
+        if (rtOptional.isEmpty()) {
+            return new RefreshResponse(false, "Unknown refresh token");
+        }
+        RefreshToken rt = rtOptional.get();
+        if (rt.getExpiryDate().isBefore(Instant.now())) {
+            return new RefreshResponse(false, "Refresh token expired");
+        }
+        // Must be valid
+        if (!jwtTokenProvider.validateToken(refreshToken)) {
+            return new RefreshResponse(false, "Invalid refresh token");
+        }
+        // Delete old refresh token
+        refreshTokenRepository.delete(rt);
+        // Issue new access and refresh tokens for the user
+        User u = rt.getUser();
+        String newAccessToken = jwtTokenProvider.createAccessToken(u.getEmail(), u.getUserId());
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(u.getEmail(), u.getUserId());
+        // Persist new refresh token
+        RefreshToken newRt = new RefreshToken();
+        newRt.setToken(newRefreshToken);
+        newRt.setUser(u);
+        newRt.setExpiryDate(jwtTokenProvider.getExpiration(newRefreshToken).toInstant());
+        refreshTokenRepository.save(newRt);
+        return new RefreshResponse(newAccessToken, newRefreshToken);
     }
 
     private String getDefaultProfilePic() {
@@ -182,14 +197,16 @@ public class AuthService {
     private AuthResponse createSuccessResponse(User user, boolean isGoogle) {
         String accessToken = jwtTokenProvider.createAccessToken(user.getEmail(), user.getUserId());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail(), user.getUserId());
+        Date accessExp = jwtTokenProvider.getExpiration(accessToken);
+        Date refreshExp = jwtTokenProvider.getExpiration(refreshToken);
         RefreshToken refreshTokenEntity = new RefreshToken();
         refreshTokenEntity.setToken(refreshToken);
         refreshTokenEntity.setUser(user);
-        refreshTokenEntity.setExpiryDate(Instant.now().plus(7, ChronoUnit.DAYS));
+        refreshTokenEntity.setExpiryDate(refreshExp.toInstant());
         refreshTokenRepository.save(refreshTokenEntity);
         UserRoles ur = user.getUserRoles();
         Boolean isAdmin = ur.getIsAdmin();
-        Boolean isMechanic =  ur.getIsMechanic();
-        return new AuthResponse(user.getName(), user.getUserId(), user.getEmail(), user.getProfilePic(), isGoogle, accessToken, refreshToken, isAdmin, isMechanic, user.getBiography());
+        Boolean isMechanic = ur.getIsMechanic();
+        return new AuthResponse(user.getName(), user.getUserId(), user.getEmail(), user.getProfilePic(), isGoogle, accessToken, refreshToken, isAdmin, isMechanic, user.getBiography(), accessExp.getTime(), refreshExp.getTime());
     }
 }

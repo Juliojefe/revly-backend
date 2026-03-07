@@ -12,6 +12,11 @@ import java.util.Date;
 public class JwtTokenProvider {
 
     private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256); // Secure key for signing
+
+    //  saving these for future testing
+//    private final long accessTokenValidity = 30000; // 30 seconds
+//    private final long refreshTokenValidity = 300000; // 5 minutes
+
     private final long accessTokenValidity = 3600000; // 1 hour
     private final long refreshTokenValidity = 604800000; // 7 days
 
@@ -64,6 +69,16 @@ public class JwtTokenProvider {
         try {
             return Jwts.parserBuilder().setSigningKey(key).build()
                     .parseClaimsJws(token).getBody().get("userId", Integer.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // Get expiration from token
+    public Date getExpiration(String token) {
+        try {
+            return Jwts.parserBuilder().setSigningKey(key).build()
+                    .parseClaimsJws(token).getBody().getExpiration();
         } catch (Exception e) {
             return null;
         }
