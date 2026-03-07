@@ -21,7 +21,6 @@ public class GetUserProfilePrivateResponse {
     private int followerCount;
     private int followingCount;
     private String profilePicUrl;
-    private String biography;
 
 
     public GetUserProfilePrivateResponse() {
@@ -37,7 +36,6 @@ public class GetUserProfilePrivateResponse {
         this.followerCount = 0;
         this.followingCount = 0;
         this.profilePicUrl = "";
-        this.biography = "";
     }
 
     public GetUserProfilePrivateResponse(User u) {
@@ -53,7 +51,6 @@ public class GetUserProfilePrivateResponse {
         this.followerCount = followerIds.size();
         this.followingCount = followingIds.size();
         this.profilePicUrl = u.getProfilePic();
-        this.biography = u.getBiography();
     }
 
     private Set<Integer> getChatIds(Set<Chat> chats) {
@@ -222,13 +219,5 @@ public class GetUserProfilePrivateResponse {
 
     public void setOwnedPostIds(Set<Integer> ownedPostIds) {
         this.ownedPostIds = ownedPostIds;
-    }
-
-    public String getBiography() {
-        return biography;
-    }
-
-    public void setBiography(String biography) {
-        this.biography = biography;
     }
 }
