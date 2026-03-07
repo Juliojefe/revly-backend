@@ -181,7 +181,6 @@ public class AuthService {
         user.setUserRoles(userRoles);
     }
 
-    @Transactional
     public RefreshResponse refreshAccessToken(RefreshRequest refreshRequest) {
         String refreshToken = refreshRequest.getRefreshToken();
         if (refreshToken == null || refreshToken.isBlank()) {
@@ -207,6 +206,7 @@ public class AuthService {
         String newAccessToken = jwtTokenProvider.createAccessToken(u.getEmail(), u.getUserId());
         return new RefreshResponse(newAccessToken);
     }
+
     private AuthResponse createSuccessResponse(User user, boolean isGoogle) {
         String accessToken = jwtTokenProvider.createAccessToken(user.getEmail(), user.getUserId());
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getEmail(), user.getUserId());

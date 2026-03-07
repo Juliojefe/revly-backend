@@ -40,7 +40,7 @@ public class SecurityConfig {
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/register/google",
-            "/api/auth/refresh",
+//            "/api/auth/refresh",
             "/oauth2/**",
             "/login/oauth2/code/google",
             "/api/post/owned/{userId}",
