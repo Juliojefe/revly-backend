@@ -7,21 +7,18 @@ import com.example.revly.dto.request.UserLoginRequest;
 import com.example.revly.dto.request.UserRegisterRequest;
 import com.example.revly.dto.response.AuthResponse;
 import com.example.revly.dto.response.RefreshResponse;
-import com.example.revly.exception.UnauthorizedException;
 import com.example.revly.model.*;
 import com.example.revly.model.RefreshToken;
 import com.example.revly.model.User;
 import com.example.revly.model.UserRoles;
 import com.example.revly.repository.RefreshTokenRepository;
 import com.example.revly.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.security.Principal;
+import java.io.IOException;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service

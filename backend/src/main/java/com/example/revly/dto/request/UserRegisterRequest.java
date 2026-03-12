@@ -21,7 +21,6 @@ public class UserRegisterRequest {
         this.biography = biography;
     }
 
-    // Getters and setters...
     public MultipartFile getProfilePic() {
         return profilePic;
     }
