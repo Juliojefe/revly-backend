@@ -36,6 +36,9 @@ public class AuthService {
     @Autowired
     private RefreshTokenRepository refreshTokenRepository;
 
+    @Autowired
+    private FileUploadService fileUploadService;
+
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public AuthResponse register(UserRegisterRequest request) {
@@ -44,8 +47,15 @@ public class AuthService {
         String confirmPassword = request.getConfirmPassword() != null ? request.getConfirmPassword().trim() : "";
         String salt = email;
         String name = request.getName() != null ? request.getName().trim() : "";
-        String profilePic = request.getProfilePic() != null ? request.getProfilePic().trim() : getDefaultProfilePic();
         String biography = request.getBiography() != null ? request.getBiography().trim() : "";
+        String profilePicUrl = getDefaultProfilePic();
+        if (request.getProfilePic() != null && !request.getProfilePic().isEmpty()) {
+            try {
+                profilePicUrl = fileUploadService.uploadFile(request.getProfilePic());
+            } catch (IOException e) {
+                return new AuthResponse("Failed to upload profile picture");
+            }
+        }
         if (!password.equals(confirmPassword)) {
             return new AuthResponse("Passwords do not match");
         }
@@ -72,7 +82,7 @@ public class AuthService {
         User newUser = new User();
         newUser.setEmail(email);
         newUser.setName(name);
-        newUser.setProfilePic(profilePic);
+        newUser.setProfilePic(profilePicUrl);
         String saltedAndHashed = passwordEncoder.encode(password + salt);
         newUser.setPassword(saltedAndHashed);
         newUser.setGoogleId(null);

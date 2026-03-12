@@ -10,8 +10,10 @@ import com.example.revly.model.User;
 import com.example.revly.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.security.Principal;
 import java.util.Map;
@@ -23,8 +25,16 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
-    @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody UserRegisterRequest request) {
+    @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<AuthResponse> register(
+            @RequestPart("name") String name,
+            @RequestPart("email") String email,
+            @RequestPart("password") String password,
+            @RequestPart("confirmPassword") String confirmPassword,
+            @RequestPart(value = "profilePic", required = false) MultipartFile profilePic,
+            @RequestPart(value = "biography", required = false) String biography
+    ) {
+        UserRegisterRequest request = new UserRegisterRequest(name, email, password, confirmPassword, profilePic, biography);
         AuthResponse resp = authService.register(request);
         if (resp.getAccessToken() != null) {
             return ResponseEntity.ok(resp);
