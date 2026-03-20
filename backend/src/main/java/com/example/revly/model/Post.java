@@ -42,7 +42,46 @@ public class Post {
     @JsonIgnore
     private Set<Comment> comments = new HashSet<>();
 
+    @ManyToMany
+    @JoinTable(
+            name = "post_tag",
+            joinColumns = @JoinColumn(name = "post_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags = new HashSet<>();
+
+    // 1:1 with the search document (shared PK via @MapsId on the other side)
+    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JsonIgnore
+    private PostSearchDocument searchDocument;
+
     // Getters and setters
+
+
+    public List<PostImage> getImages() {
+        return images;
+    }
+
+    public void setImages(List<PostImage> images) {
+        this.images = images;
+    }
+
+    public Set<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<Tag> tags) {
+        this.tags = tags;
+    }
+
+    public PostSearchDocument getSearchDocument() {
+        return searchDocument;
+    }
+
+    public void setSearchDocument(PostSearchDocument searchDocument) {
+        this.searchDocument = searchDocument;
+    }
+
     public Integer getPostId() {
         return postId;
     }
