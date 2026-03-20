@@ -5,10 +5,10 @@ import com.example.revly.dto.request.CreatePostRequestUrl;
 import com.example.revly.dto.response.PostSummary;
 import com.example.revly.exception.BadRequestException;
 import com.example.revly.exception.ResourceNotFoundException;
-import com.example.revly.model.Post;
-import com.example.revly.model.PostImage;
+import com.example.revly.model.*;
 import com.example.revly.dto.response.CreatePostConfirmation;
-import com.example.revly.model.User;
+import com.example.revly.repository.PostEmbeddingJobRepository;
+import com.example.revly.repository.TagRepository;
 import com.example.revly.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +32,11 @@ public class PostService {
 
     @Autowired
     private FileUploadService fileUploadService;
+
+    @Autowired
+    private TagRepository tagRepository;
+    @Autowired
+    private PostEmbeddingJobRepository postEmbeddingJobRepository;
 
     @Transactional(readOnly = true)
     public PostSummary getPostSummaryById(int postId, User u) {
@@ -207,20 +212,18 @@ public class PostService {
         if (request.getDescription().isEmpty()) {
             return new CreatePostConfirmation(false, "Description must not be empty");
         }
-        User u = optUser.get();
-        Post post = new Post();
-        post.setDescription(request.getDescription());
-        post.setUser(u);
-        post.setCreatedAt(request.getCreatedAt() != null ? request.getCreatedAt() : Instant.now());
+
+        User user = optUser.get();
+
+        // Build PostImage entities (URLs already provided)
         List<PostImage> postImages = new ArrayList<>();
         for (String imageUrl : request.getImages()) {
-            PostImage postImage = new PostImage();
-            postImage.setImageUrl(imageUrl);
-            postImage.setPost(post);
-            postImages.add(postImage);
+            PostImage pi = new PostImage();
+            pi.setImageUrl(imageUrl);
+            postImages.add(pi);
         }
-        post.setPostImages(postImages);
-        Post savedPost = postRepository.save(post);
+
+        Post savedPost = createPostCore(request.getDescription(), request.getCreatedAt(), postImages, request.getTags(), user);
         return new CreatePostConfirmation(true, "Post uploaded successfully!");
     }
 
@@ -232,22 +235,94 @@ public class PostService {
         if (requestImages.getDescription().isEmpty()) {
             return new CreatePostConfirmation(false, "Description must not be empty");
         }
-        User u = optUser.get();
-        Post post = new Post();
-        post.setDescription(requestImages.getDescription());
-        post.setUser(u);
-        post.setCreatedAt(requestImages.getCreatedAt() != null ? requestImages.getCreatedAt() : Instant.now());
+
+        User user = optUser.get();
+
+        // Upload files and build PostImage entities
         List<PostImage> postImages = new ArrayList<>();
-        for (MultipartFile image : requestImages.getImages()) {
-            String imageUrl = fileUploadService.uploadFile(image);
-            PostImage postImage = new PostImage();
-            postImage.setImageUrl(imageUrl);
-            postImage.setPost(post);
-            postImages.add(postImage);
+        for (MultipartFile file : requestImages.getImages()) {
+            String imageUrl = fileUploadService.uploadFile(file);
+            PostImage pi = new PostImage();
+            pi.setImageUrl(imageUrl);
+            postImages.add(pi);
         }
-        post.setPostImages(postImages);
-        Post savedPost = postRepository.save(post);
+
+        Post savedPost = createPostCore(requestImages.getDescription(), requestImages.getCreatedAt(), postImages, requestImages.getTags(), user);
         return new CreatePostConfirmation(true, "Post uploaded successfully!");
+    }
+
+    private Post createPostCore(String description, Instant createdAt, List<PostImage> postImages, List<String> rawTags, User user) {
+        Post post = new Post();
+        post.setDescription(description);
+        post.setUser(user);
+        post.setCreatedAt(createdAt != null ? createdAt : Instant.now());
+
+        // 2. Insert images (bidirectional relationship)
+        post.setPostImages(postImages);                 // matches your existing setter name
+        for (PostImage img : postImages) {
+            img.setPost(post);
+        }
+
+        // 3. Normalize + upsert tags → post_tag
+        Set<String> normalizedTags = normalizeAndDeduplicateTags(rawTags);
+        for (String normTag : normalizedTags) {
+            Tag tag = tagRepository.findByTagName(normTag)
+                    .orElseGet(() -> {
+                        Tag newTag = new Tag();
+                        newTag.setTagName(normTag);
+                        return tagRepository.save(newTag);   // created_at defaults in DB
+                    });
+            post.getTags().add(tag);   // adds to post_tag join table on save
+        }
+
+        // 4. Insert post_search_document (pending, version 1)
+        PostSearchDocument searchDoc = new PostSearchDocument();
+        searchDoc.setPost(post);
+        searchDoc.setDescriptionVersion(1);
+        searchDoc.setEmbeddingStatus("pending");
+        searchDoc.setEmbeddingModelKey("post_description_embedding_v1");
+        // description_embedding = null, embedding_updated_at = null (defaults)
+        post.setSearchDocument(searchDoc);
+
+        // 1+4+3 → single save (cascades images + searchDocument + post_tag)
+        Post savedPost = postRepository.save(post);
+
+        // 5. Insert post_embedding_job
+        PostEmbeddingJob job = new PostEmbeddingJob();
+        job.setPost(savedPost);
+        job.setDescriptionVersion(1);
+        job.setStatus("pending");
+        job.setNextAttemptAt(Instant.now());
+        postEmbeddingJobRepository.save(job);
+
+        // 6. Commit already happened (transactional by @Service)
+        // 7. Return the post immediately – embeddingStatus = pending (visible via post.getSearchDocument().getEmbeddingStatus())
+        return savedPost;
+    }
+
+    private Set<String> normalizeAndDeduplicateTags(List<String> rawTags) {
+        if (rawTags == null || rawTags.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        return rawTags.stream()
+                .map(this::normalizeSingleTag)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());   // deduplicates automatically
+    }
+
+    private String normalizeSingleTag(String input) {
+        if (input == null) return null;
+
+        String cleaned = input.trim()
+                .replaceFirst("^#", "")   // remove leading #
+                .toLowerCase(Locale.ROOT);
+
+        // Reject empty, >64 chars, or invalid characters
+        if (cleaned.isEmpty() || !cleaned.matches("^[a-z0-9_]{1,64}$")) {
+            return null;
+        }
+        return cleaned;
     }
 
     private PostSummary toPostSummaryDto(Post p, boolean hasLiked, boolean hasSaved, boolean followingAuthor) {

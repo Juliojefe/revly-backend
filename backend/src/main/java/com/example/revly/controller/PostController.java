@@ -109,11 +109,13 @@ public class PostController {
             @RequestParam("description") String description,
             @RequestParam("createdAt") String createdAt,
             @RequestParam(value = "requestImages", required = false) List<MultipartFile> images,
+            @RequestParam(value = "tags", required = false) List<String> tags,   // NEW: tags as repeated form field (tags=travel&tags=food)
             Principal principal
     ) throws IOException {
-        List<MultipartFile> imageList = images != null ? images : new ArrayList<>();    //  empty?
+        List<MultipartFile> imageList = images != null ? images : new ArrayList<>();
+        List<String> tagList = tags != null ? tags : new ArrayList<>();
 
-        CreatePostRequestImages request = new CreatePostRequestImages(description, Instant.parse(createdAt), imageList);
+        CreatePostRequestImages request = new CreatePostRequestImages(description, Instant.parse(createdAt), imageList, tagList);
         User user = getUserFromPrincipalOrThrow(principal);
         return ResponseEntity.ok(postService.createPost(request, user.getUserId()));
     }
