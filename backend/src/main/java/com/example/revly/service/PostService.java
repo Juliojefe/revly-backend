@@ -2,9 +2,11 @@ package com.example.revly.service;
 
 import com.example.revly.dto.request.CreatePostRequestImages;
 import com.example.revly.dto.request.CreatePostRequestUrl;
+import com.example.revly.dto.request.UpdatePostRequest;
 import com.example.revly.dto.response.PostSummary;
 import com.example.revly.exception.BadRequestException;
 import com.example.revly.exception.ResourceNotFoundException;
+import com.example.revly.exception.UnauthorizedException;
 import com.example.revly.model.*;
 import com.example.revly.dto.response.CreatePostConfirmation;
 import com.example.revly.repository.PostEmbeddingJobRepository;
@@ -249,6 +251,108 @@ public class PostService {
 
         Post savedPost = createPostCore(requestImages.getDescription(), requestImages.getCreatedAt(), postImages, requestImages.getTags(), user);
         return new CreatePostConfirmation(true, "Post uploaded successfully!");
+    }
+
+    public CreatePostConfirmation updatePost(Integer postId, UpdatePostRequest request, int userId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+
+        // Owner check
+        if (post.getUser() == null || !Objects.equals(post.getUser().getUserId(), userId)) {
+            throw new UnauthorizedException("Only the post owner can update this post");
+        }
+
+        String newDescription = request.getDescription();
+        List<String> newTags = request.getTags();
+
+        boolean descriptionChanged = false;
+
+        // 1. Description update (if provided)
+        if (newDescription != null) {
+            String trimmed = newDescription.trim();
+            if (trimmed.isEmpty()) {
+                return new CreatePostConfirmation(false, "Description must not be empty");
+            }
+            if (!trimmed.equals(post.getDescription())) {
+                post.setDescription(trimmed);
+                descriptionChanged = true;
+            }
+        }
+
+        // 2. Tags update (if provided → full replace)
+        if (newTags != null) {
+            syncPostTags(post, newTags);
+        }
+
+        // 3. If description changed → prepare new embedding version
+        if (descriptionChanged) {
+            prepareNewEmbeddingVersion(post);
+        }
+
+        // 4. Save (cascades tags + searchDocument)
+        Post savedPost = postRepository.save(post);
+
+        // 5. If description changed → enqueue fresh job (new version)
+        if (descriptionChanged) {
+            enqueueNewEmbeddingJob(savedPost);
+        }
+
+        return new CreatePostConfirmation(true, "Post updated successfully!");
+    }
+
+    // Helper: Sync tags exactly like creation (upsert + remove obsolete)
+    private void syncPostTags(Post post, List<String> rawTags) {
+        Set<String> normalized = normalizeAndDeduplicateTags(rawTags);
+
+        // Remove tags that are no longer wanted
+        post.getTags().removeIf(tag -> !normalized.contains(tag.getTagName()));
+
+        // Add missing tags (upsert)
+        for (String normTag : normalized) {
+            if (post.getTags().stream().noneMatch(t -> t.getTagName().equals(normTag))) {
+                Tag tag = tagRepository.findByTagName(normTag)
+                        .orElseGet(() -> {
+                            Tag newTag = new Tag();
+                            newTag.setTagName(normTag);
+                            return tagRepository.save(newTag);
+                        });
+                post.getTags().add(tag);
+            }
+        }
+    }
+
+    // Helper: Increment version, clear old embedding, set pending
+    // (handles legacy posts that never had a search document)
+    private void prepareNewEmbeddingVersion(Post post) {
+        PostSearchDocument doc = post.getSearchDocument();
+
+        if (doc == null) {
+            // Legacy post – create fresh document
+            doc = new PostSearchDocument();
+            doc.setPost(post);
+            doc.setDescriptionVersion(1);
+            doc.setEmbeddingStatus("pending");
+            doc.setEmbeddingModelKey("post_description_embedding_v1");
+            post.setSearchDocument(doc);
+        } else {
+            // Normal case – bump version and clear stale embedding
+            doc.setDescriptionVersion(doc.getDescriptionVersion() + 1);
+            doc.setEmbeddingStatus("pending");
+            doc.setDescriptionEmbedding(null);          // never keep old vector
+            doc.setEmbeddingUpdatedAt(null);
+        }
+    }
+
+    // Helper: Enqueue job for the NEW version
+    private void enqueueNewEmbeddingJob(Post post) {
+        PostSearchDocument doc = post.getSearchDocument(); // guaranteed to exist now
+
+        PostEmbeddingJob job = new PostEmbeddingJob();
+        job.setPost(post);
+        job.setDescriptionVersion(doc.getDescriptionVersion());
+        job.setStatus("pending");
+        job.setNextAttemptAt(Instant.now());
+        postEmbeddingJobRepository.save(job);
     }
 
     private Post createPostCore(String description, Instant createdAt, List<PostImage> postImages, List<String> rawTags, User user) {
