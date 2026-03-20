@@ -37,8 +37,12 @@ public class PostService {
 
     @Autowired
     private TagRepository tagRepository;
+
     @Autowired
     private PostEmbeddingJobRepository postEmbeddingJobRepository;
+
+    @Autowired
+    private TagNormalizationService tagNormalizationService;
 
     @Transactional(readOnly = true)
     public PostSummary getPostSummaryById(int postId, User u) {
@@ -206,6 +210,7 @@ public class PostService {
         throw new BadRequestException("Not saved");
     }
 
+    @Transactional
     public CreatePostConfirmation createPost(CreatePostRequestUrl request, int userId) {
         Optional<User> optUser = userRepository.findById(userId);
         if (optUser.isEmpty()) {
@@ -229,6 +234,7 @@ public class PostService {
         return new CreatePostConfirmation(true, "Post uploaded successfully!");
     }
 
+    @Transactional
     public CreatePostConfirmation createPost(CreatePostRequestImages requestImages, int userId) throws IOException {
         Optional<User> optUser = userRepository.findById(userId);
         if (optUser.isEmpty()) {
@@ -253,6 +259,7 @@ public class PostService {
         return new CreatePostConfirmation(true, "Post uploaded successfully!");
     }
 
+    @Transactional
     public CreatePostConfirmation updatePost(Integer postId, UpdatePostRequest request, int userId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
@@ -302,7 +309,7 @@ public class PostService {
 
     // Helper: Sync tags exactly like creation (upsert + remove obsolete)
     private void syncPostTags(Post post, List<String> rawTags) {
-        Set<String> normalized = normalizeAndDeduplicateTags(rawTags);
+        Set<String> normalized = tagNormalizationService.normalizeTags(rawTags);
 
         // Remove tags that are no longer wanted
         post.getTags().removeIf(tag -> !normalized.contains(tag.getTagName()));
@@ -362,13 +369,13 @@ public class PostService {
         post.setCreatedAt(createdAt != null ? createdAt : Instant.now());
 
         // 2. Insert images (bidirectional relationship)
-        post.setPostImages(postImages);                 // matches your existing setter name
+        post.setPostImages(postImages);
         for (PostImage img : postImages) {
             img.setPost(post);
         }
 
-        // 3. Normalize + upsert tags → post_tag
-        Set<String> normalizedTags = normalizeAndDeduplicateTags(rawTags);
+        // 3. Normalize + upsert tags → post_tag (using shared service)
+        Set<String> normalizedTags = tagNormalizationService.normalizeTags(rawTags);
         for (String normTag : normalizedTags) {
             Tag tag = tagRepository.findByTagName(normTag)
                     .orElseGet(() -> {
@@ -399,34 +406,7 @@ public class PostService {
         job.setNextAttemptAt(Instant.now());
         postEmbeddingJobRepository.save(job);
 
-        // 6. Commit already happened (transactional by @Service)
-        // 7. Return the post immediately – embeddingStatus = pending (visible via post.getSearchDocument().getEmbeddingStatus())
         return savedPost;
-    }
-
-    private Set<String> normalizeAndDeduplicateTags(List<String> rawTags) {
-        if (rawTags == null || rawTags.isEmpty()) {
-            return Collections.emptySet();
-        }
-
-        return rawTags.stream()
-                .map(this::normalizeSingleTag)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());   // deduplicates automatically
-    }
-
-    private String normalizeSingleTag(String input) {
-        if (input == null) return null;
-
-        String cleaned = input.trim()
-                .replaceFirst("^#", "")   // remove leading #
-                .toLowerCase(Locale.ROOT);
-
-        // Reject empty, >64 chars, or invalid characters
-        if (cleaned.isEmpty() || !cleaned.matches("^[a-z0-9_]{1,64}$")) {
-            return null;
-        }
-        return cleaned;
     }
 
     private PostSummary toPostSummaryDto(Post p, boolean hasLiked, boolean hasSaved, boolean followingAuthor) {
