@@ -1,5 +1,7 @@
 package com.example.revly.service;
 
+import com.example.revly.exception.NonRetryableEmbeddingException;
+import com.example.revly.exception.RetryableEmbeddingException;
 import com.example.revly.model.PostEmbeddingJob;
 import com.example.revly.model.PostSearchDocument;
 import com.example.revly.repository.PostEmbeddingJobRepository;
@@ -22,30 +24,25 @@ public class EmbeddingWorkerService {
     @Autowired
     private PostSearchDocumentRepository postSearchDocumentRepository;
 
-    // TODO: Create this service (or interface) with your actual embedding provider
-    // Example: OpenAI, HuggingFace, Vertex AI, local model, etc.
-    // It must return List<Float> of exactly 1536 dimensions.
     @Autowired
     private TextEmbeddingService textEmbeddingService;
 
     /**
      * Runs every 5 seconds.
      * Processes ONE job per execution to keep it simple and safe.
-     * (You can change fixedRate or make it process up to N jobs if you want.)
      */
-    @Scheduled(fixedRate = 5000)   // 5 seconds – adjust as needed
+    @Scheduled(fixedRate = 5000)
     @Transactional
     public void processPendingEmbeddingJobs() {
-        // 1. Find the next eligible pending job (oldest first)
+        // 1) Find the next eligible pending job (oldest first)
         Optional<PostEmbeddingJob> optJob = postEmbeddingJobRepository.findNextPendingJob(Instant.now());
-
         if (optJob.isEmpty()) {
-            return; // nothing to do
+            return;
         }
 
         PostEmbeddingJob job = optJob.get();
 
-        // 2. Try to claim the job (prevents race conditions in multi-instance deployments)
+        // 2) Try to claim the job (prevents race conditions in multi-instance deployments)
         boolean claimed = postEmbeddingJobRepository.claimJob(job.getJobId()) > 0;
         if (!claimed) {
             return;
@@ -53,39 +50,43 @@ public class EmbeddingWorkerService {
 
         try {
             processSingleJob(job);
+        } catch (NonRetryableEmbeddingException e) {
+            handleNonRetryableFailure(job, e);
+        } catch (RetryableEmbeddingException e) {
+            handleRetryableFailure(job, e);
         } catch (Exception e) {
-            handleJobFailure(job, e);
+            // Unknown errors: treat as retryable
+            handleRetryableFailure(job, e);
         }
     }
 
     /**
-     * Core logic for one job – exactly matches your version-aware spec
+     * Core logic for one job – version-aware
      */
     private void processSingleJob(PostEmbeddingJob job) {
-        // Load the current search document (we need its version + embedding field)
         PostSearchDocument doc = postSearchDocumentRepository.findById(job.getPost().getPostId())
-                .orElseThrow(() -> new IllegalStateException("PostSearchDocument missing for post " + job.getPost().getPostId()));
+                .orElseThrow(() -> new IllegalStateException(
+                        "PostSearchDocument missing for post " + job.getPost().getPostId()
+                ));
 
-        // Version check – this is the heart of "version-aware"
+        // Version check (stale job protection)
         if (!job.getDescriptionVersion().equals(doc.getDescriptionVersion())) {
-            // Job is stale (description was updated again)
             markJobObsolete(job);
             return;
         }
 
-        // Version is still current → generate embedding
+        // Generate embedding (may throw RetryableEmbeddingException / NonRetryableEmbeddingException)
         List<Float> embedding = textEmbeddingService.embed(job.getPost().getDescription());
 
-        // Write the vector
+        // Write embedding + mark ready
         doc.setDescriptionEmbedding(embedding);
         doc.setEmbeddingStatus("ready");
         doc.setEmbeddingUpdatedAt(Instant.now());
-
         postSearchDocumentRepository.save(doc);
 
         // Mark job completed
         job.setStatus("completed");
-        job.setLockedAt(null);   // release lock
+        job.setLockedAt(null);
         postEmbeddingJobRepository.save(job);
     }
 
@@ -95,22 +96,75 @@ public class EmbeddingWorkerService {
         postEmbeddingJobRepository.save(job);
     }
 
-    private void handleJobFailure(PostEmbeddingJob job, Exception e) {
+    /**
+     * Permanent failure: do NOT retry (bad key, invalid request, dimension mismatch, etc.)
+     */
+    private void handleNonRetryableFailure(PostEmbeddingJob job, Exception e) {
         job.setAttemptCount(job.getAttemptCount() + 1);
-        job.setLastError(e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName());
+        job.setLastError(safeError(e));
+        job.setStatus("failed");
+        job.setLockedAt(null);
+        postEmbeddingJobRepository.save(job);
+
+        // Mark the search document failed only if this job is still current
+        postSearchDocumentRepository.findById(job.getPost().getPostId()).ifPresent(doc -> {
+            if (job.getDescriptionVersion().equals(doc.getDescriptionVersion())) {
+                doc.setEmbeddingStatus("failed");
+                postSearchDocumentRepository.save(doc);
+            } else {
+                // If the post changed again, this job is stale
+                markJobObsolete(job);
+            }
+        });
+    }
+
+    /**
+     * Retryable failure: rate limits, timeouts, 5xx, transient network issues.
+     * Retries with exponential backoff up to 5 attempts.
+     */
+    private void handleRetryableFailure(PostEmbeddingJob job, Exception e) {
+        job.setAttemptCount(job.getAttemptCount() + 1);
+        job.setLastError(safeError(e));
 
         if (job.getAttemptCount() >= 5) {
-            // Permanent failure after max retries
             job.setStatus("failed");
             job.setLockedAt(null);
-        } else {
-            // Transient failure → exponential backoff (30s * 2^attempt)
-            long backoffSeconds = 30L * (1L << (job.getAttemptCount() - 1)); // 30s, 60s, 120s, ...
-            job.setNextAttemptAt(Instant.now().plusSeconds(backoffSeconds));
-            job.setStatus("pending");
-            job.setLockedAt(null);
+            postEmbeddingJobRepository.save(job);
+
+            postSearchDocumentRepository.findById(job.getPost().getPostId()).ifPresent(doc -> {
+                if (job.getDescriptionVersion().equals(doc.getDescriptionVersion())) {
+                    doc.setEmbeddingStatus("failed");
+                    postSearchDocumentRepository.save(doc);
+                } else {
+                    markJobObsolete(job);
+                }
+            });
+            return;
         }
 
+        // Exponential backoff: 30s, 60s, 120s, 240s...
+        long backoffSeconds = 30L * (1L << (job.getAttemptCount() - 1));
+        job.setNextAttemptAt(Instant.now().plusSeconds(backoffSeconds));
+        job.setStatus("pending");
+        job.setLockedAt(null);
         postEmbeddingJobRepository.save(job);
+
+        // Keep search document in pending while retrying (only if still current)
+        postSearchDocumentRepository.findById(job.getPost().getPostId()).ifPresent(doc -> {
+            if (job.getDescriptionVersion().equals(doc.getDescriptionVersion())) {
+                doc.setEmbeddingStatus("pending");
+                postSearchDocumentRepository.save(doc);
+            } else {
+                markJobObsolete(job);
+            }
+        });
+    }
+
+    private String safeError(Exception e) {
+        String msg = e.getMessage();
+        if (msg == null || msg.isBlank()) {
+            msg = e.getClass().getSimpleName();
+        }
+        return msg.length() > 1000 ? msg.substring(0, 1000) + "…" : msg;
     }
 }

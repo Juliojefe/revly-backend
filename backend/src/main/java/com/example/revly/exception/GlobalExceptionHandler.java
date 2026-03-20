@@ -45,4 +45,16 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Failed to upload image: " + ex.getMessage());
     }
+
+    @ExceptionHandler(NonRetryableEmbeddingException.class)
+    public ResponseEntity<String> handleNonRetryableEmbedding(NonRetryableEmbeddingException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Embedding service misconfiguration: " + ex.getMessage());
+    }
+
+    @ExceptionHandler(RetryableEmbeddingException.class)
+    public ResponseEntity<String> handleRetryableEmbedding(RetryableEmbeddingException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Embedding service temporarily unavailable: " + ex.getMessage());
+    }
 }

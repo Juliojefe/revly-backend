@@ -10,9 +10,6 @@ import java.time.Instant;
 import java.util.Optional;
 
 public interface PostEmbeddingJobRepository extends JpaRepository<PostEmbeddingJob, Long> {
-
-//    Optional<PostEmbeddingJob> findNextPendingJob(Instant now);   // you will implement this with @Query below
-
     @Modifying
     @Query("UPDATE PostEmbeddingJob j " +
             "SET j.status = 'processing', j.lockedAt = CURRENT_TIMESTAMP " +
