@@ -388,6 +388,8 @@ public class PostService {
 
         // 4. Insert post_search_document (pending, version 1)
         PostSearchDocument searchDoc = new PostSearchDocument();
+        searchDoc.setCreatedAt(post.getCreatedAt());
+        searchDoc.setUpdatedAt(Instant.now());
         searchDoc.setPost(post);
         searchDoc.setDescriptionVersion(1);
         searchDoc.setEmbeddingStatus("pending");
@@ -403,6 +405,8 @@ public class PostService {
         job.setPost(savedPost);
         job.setDescriptionVersion(1);
         job.setStatus("pending");
+        job.setCreatedAt(Instant.now());
+        job.setUpdatedAt(Instant.now());
         job.setNextAttemptAt(Instant.now());
         postEmbeddingJobRepository.save(job);
 

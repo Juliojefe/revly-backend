@@ -110,7 +110,7 @@ public class PostController {
             @RequestParam("description") String description,
             @RequestParam("createdAt") String createdAt,
             @RequestParam(value = "requestImages", required = false) List<MultipartFile> images,
-            @RequestParam(value = "tags", required = false) List<String> tags,   // NEW: tags as repeated form field (tags=travel&tags=food)
+            @RequestParam(value = "tags", required = false) List<String> tags,
             Principal principal
     ) throws IOException {
         List<MultipartFile> imageList = images != null ? images : new ArrayList<>();
