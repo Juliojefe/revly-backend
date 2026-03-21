@@ -11,6 +11,7 @@ import java.util.Set;
 @Entity
 @Table(name = "post")
 public class Post {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "post_id")
@@ -26,6 +27,13 @@ public class Post {
 
     @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Instant createdAt;
+
+    // === NEW: Direct embedding storage (simple & fast) ===
+    @Column(name = "description_embedding", columnDefinition = "vector(1536)")
+    private List<Float> descriptionEmbedding;
+
+    @Column(name = "embedding_updated_at")
+    private Instant embeddingUpdatedAt;
 
     @ManyToMany(mappedBy = "savedPosts")
     @JsonIgnore
@@ -50,37 +58,7 @@ public class Post {
     )
     private Set<Tag> tags = new HashSet<>();
 
-    // 1:1 with the search document (shared PK via @MapsId on the other side)
-    @OneToOne(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @JsonIgnore
-    private PostSearchDocument searchDocument;
-
-    // Getters and setters
-
-
-    public List<PostImage> getImages() {
-        return images;
-    }
-
-    public void setImages(List<PostImage> images) {
-        this.images = images;
-    }
-
-    public Set<Tag> getTags() {
-        return tags;
-    }
-
-    public void setTags(Set<Tag> tags) {
-        this.tags = tags;
-    }
-
-    public PostSearchDocument getSearchDocument() {
-        return searchDocument;
-    }
-
-    public void setSearchDocument(PostSearchDocument searchDocument) {
-        this.searchDocument = searchDocument;
-    }
+    // Getters and Setters
 
     public Integer getPostId() {
         return postId;
@@ -88,14 +66,6 @@ public class Post {
 
     public void setPostId(Integer postId) {
         this.postId = postId;
-    }
-
-    public List<PostImage> getPostImages() {
-        return images;
-    }
-
-    public void setPostImages(List<PostImage> images) {
-        this.images = images;
     }
 
     public String getDescription() {
@@ -122,6 +92,38 @@ public class Post {
         this.createdAt = createdAt;
     }
 
+    public List<Float> getDescriptionEmbedding() {
+        return descriptionEmbedding;
+    }
+
+    public void setDescriptionEmbedding(List<Float> descriptionEmbedding) {
+        this.descriptionEmbedding = descriptionEmbedding;
+    }
+
+    public Instant getEmbeddingUpdatedAt() {
+        return embeddingUpdatedAt;
+    }
+
+    public void setEmbeddingUpdatedAt(Instant embeddingUpdatedAt) {
+        this.embeddingUpdatedAt = embeddingUpdatedAt;
+    }
+
+    public List<PostImage> getImages() {
+        return images;
+    }
+
+    public void setImages(List<PostImage> images) {
+        this.images = images;
+    }
+
+    public Set<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<Tag> tags) {
+        this.tags = tags;
+    }
+
     public Set<User> getSavers() {
         return savers;
     }
@@ -142,6 +144,10 @@ public class Post {
         return comments;
     }
 
+    public void setComments(Set<Comment> comments) {
+        this.comments = comments;
+    }
+
     public Set<Integer> getCommentIds() {
         try {
             Set<Integer> ids = new HashSet<>();
@@ -152,9 +158,5 @@ public class Post {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public void setComments(Set<Comment> comments) {
-        this.comments = comments;
     }
 }
