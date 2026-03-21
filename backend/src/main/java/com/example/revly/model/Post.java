@@ -28,7 +28,7 @@ public class Post {
     @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Instant createdAt;
 
-    // === NEW: Direct embedding storage (simple & fast) ===
+    // === Direct embedding storage (simple & fast) ===
     @Column(name = "description_embedding", columnDefinition = "vector(1536)")
     private List<Float> descriptionEmbedding;
 
@@ -58,94 +58,47 @@ public class Post {
     )
     private Set<Tag> tags = new HashSet<>();
 
-    // Getters and Setters
 
-    public Integer getPostId() {
-        return postId;
-    }
+    public Integer getPostId() { return postId; }
+    public void setPostId(Integer postId) { this.postId = postId; }
 
-    public void setPostId(Integer postId) {
-        this.postId = postId;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public String getDescription() {
-        return description;
-    }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
-    public User getUser() {
-        return user;
-    }
+    public List<Float> getDescriptionEmbedding() { return descriptionEmbedding; }
+    public void setDescriptionEmbedding(List<Float> descriptionEmbedding) { this.descriptionEmbedding = descriptionEmbedding; }
 
-    public void setUser(User user) {
-        this.user = user;
-    }
+    public Instant getEmbeddingUpdatedAt() { return embeddingUpdatedAt; }
+    public void setEmbeddingUpdatedAt(Instant embeddingUpdatedAt) { this.embeddingUpdatedAt = embeddingUpdatedAt; }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
+    public List<PostImage> getImages() { return images; }
+    public void setImages(List<PostImage> images) { this.images = images; }
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+    public Set<Tag> getTags() { return tags; }
+    public void setTags(Set<Tag> tags) { this.tags = tags; }
 
-    public List<Float> getDescriptionEmbedding() {
-        return descriptionEmbedding;
-    }
+    public Set<User> getSavers() { return savers; }
+    public void setSavers(Set<User> savers) { this.savers = savers; }
 
-    public void setDescriptionEmbedding(List<Float> descriptionEmbedding) {
-        this.descriptionEmbedding = descriptionEmbedding;
-    }
+    public Set<User> getLikers() { return likers; }
+    public void setLikers(Set<User> likers) { this.likers = likers; }
 
-    public Instant getEmbeddingUpdatedAt() {
-        return embeddingUpdatedAt;
-    }
+    public Set<Comment> getComments() { return comments; }
+    public void setComments(Set<Comment> comments) { this.comments = comments; }
 
-    public void setEmbeddingUpdatedAt(Instant embeddingUpdatedAt) {
-        this.embeddingUpdatedAt = embeddingUpdatedAt;
-    }
-
-    public List<PostImage> getImages() {
+    // Backward compatibility (fixes ExploreService.java and any other old code)
+    public List<PostImage> getPostImages() {
         return images;
     }
 
-    public void setImages(List<PostImage> images) {
+    public void setPostImages(List<PostImage> images) {
         this.images = images;
-    }
-
-    public Set<Tag> getTags() {
-        return tags;
-    }
-
-    public void setTags(Set<Tag> tags) {
-        this.tags = tags;
-    }
-
-    public Set<User> getSavers() {
-        return savers;
-    }
-
-    public void setSavers(Set<User> savers) {
-        this.savers = savers;
-    }
-
-    public Set<User> getLikers() {
-        return likers;
-    }
-
-    public void setLikers(Set<User> likers) {
-        this.likers = likers;
-    }
-
-    public Set<Comment> getComments() {
-        return comments;
-    }
-
-    public void setComments(Set<Comment> comments) {
-        this.comments = comments;
     }
 
     public Set<Integer> getCommentIds() {
