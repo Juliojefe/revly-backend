@@ -2,6 +2,7 @@ package com.example.revly.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -20,10 +21,11 @@ public class Tag {
     @Column(name = "tag_name", nullable = false, unique = true, length = 64)
     private String tagName;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false, columnDefinition = "TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP")
     private Instant createdAt;
 
-    // Inverse side of the many-to-many (kept @JsonIgnore to avoid serialization cycles)
+    // Inverse side of the many-to-many
     @ManyToMany(mappedBy = "tags")
     @JsonIgnore
     private Set<Post> posts = new HashSet<>();
@@ -39,7 +41,7 @@ public class Tag {
     public int hashCode() {
         return Objects.hash(tagId, tagName);
     }
-
+    
     public Integer getTagId() {
         return tagId;
     }

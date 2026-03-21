@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/search")
-@CrossOrigin(origins = "*") // public endpoint
 public class SearchController {
 
     private final SearchService searchService;
