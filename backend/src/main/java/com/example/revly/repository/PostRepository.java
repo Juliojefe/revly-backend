@@ -57,4 +57,40 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     // that the specified user has saved.
     @Query("SELECT p.postId FROM Post p JOIN p.savers s WHERE s.userId = :userId AND p.postId IN :postIds")
     List<Integer> findSavedPostIdsForUser(@Param("postIds") List<Integer> postIds, @Param("userId") Integer userId);
+
+    // Semantic (text) search – ordered by embedding similarity (pgvector <=> = cosine distance)
+    @Query(value = """
+        SELECT p.post_id 
+        FROM post p 
+        WHERE p.description_embedding IS NOT NULL
+        ORDER BY p.description_embedding <=> :embedding
+        """,
+            countQuery = "SELECT COUNT(*) FROM post p WHERE p.description_embedding IS NOT NULL",
+            nativeQuery = true)
+    Page<Integer> findPostIdsBySemanticSimilarity(@Param("embedding") List<Float> embedding, Pageable pageable);
+
+    // Tag search
+    @Query("SELECT p.postId FROM Post p JOIN p.tags t WHERE LOWER(t.tagName) = LOWER(:tagName) " +
+            "ORDER BY p.createdAt DESC, p.postId DESC")
+    Page<Integer> findPostIdsByTag(@Param("tagName") String tagName, Pageable pageable);
+
+    // Hybrid search (text embedding + tag filter)
+    @Query(value = """
+        SELECT p.post_id 
+        FROM post p 
+        JOIN post_tag pt ON p.post_id = pt.post_id
+        JOIN tag t ON pt.tag_id = t.tag_id
+        WHERE LOWER(t.tag_name) = LOWER(:tagName)
+          AND p.description_embedding IS NOT NULL
+        ORDER BY p.description_embedding <=> :embedding
+        """,
+            countQuery = """
+            SELECT COUNT(*) FROM post p 
+            JOIN post_tag pt ON p.post_id = pt.post_id
+            JOIN tag t ON pt.tag_id = t.tag_id 
+            WHERE LOWER(t.tag_name) = LOWER(:tagName) AND p.description_embedding IS NOT NULL
+            """,
+            nativeQuery = true)
+    Page<Integer> findPostIdsByHybrid(@Param("embedding") List<Float> embedding,
+                                      @Param("tagName") String tagName, Pageable pageable);
 }

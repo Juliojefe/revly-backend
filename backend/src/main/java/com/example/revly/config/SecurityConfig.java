@@ -39,6 +39,7 @@ public class SecurityConfig {
     private static final List<String> PUBLIC_ENDPOINTS = Arrays.asList(
             "/api/auth/login",
             "/api/auth/register",
+            "/api/search/**",
             "/api/auth/register/google",
             "/api/auth/refresh",
             "/oauth2/**",
