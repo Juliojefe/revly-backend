@@ -34,7 +34,7 @@ public class ExploreController {
             Principal principal
     ) {
         User user = getUserFromPrincipalOrThrow(principal);
-        Pageable pageable = PageRequest.of(page, size);  // ← no Sort
+        Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(exploreService.getExplorePosts(pageable, user));
     }
 
@@ -43,7 +43,7 @@ public class ExploreController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size);  // ← no Sort
+        Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(exploreService.getExplorePostsGuest(pageable));
     }
 

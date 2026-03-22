@@ -81,7 +81,6 @@ public class TextEmbeddingService {
         }
         WebClientResponseException e = (WebClientResponseException) t;
 
-        // FIXED for Spring 6.2+
         int statusCode = e.getStatusCode().value();
 
         HttpStatus status = HttpStatus.valueOf(statusCode);
