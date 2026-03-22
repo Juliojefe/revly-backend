@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import com.pgvector.PGvector;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -117,7 +116,6 @@ public class PostService {
 
     @Transactional
     public void likePost(int postId, int userId) {
-        // ... (unchanged - same as before)
         Optional<Post> optPost = postRepository.findById(postId);
         Optional<User> optUser = userRepository.findById(userId);
         if (optUser.isEmpty() || optPost.isEmpty()) {
@@ -243,7 +241,7 @@ public class PostService {
         if (newTags != null) syncPostTags(post, newTags);
 
         if (descriptionChanged) {
-            PGvector embedding = textEmbeddingService.embed(newDescription);   // ← now directly PGvector
+            List<Float> embedding = textEmbeddingService.embed(newDescription);
             post.setDescriptionEmbedding(embedding);
             post.setEmbeddingUpdatedAt(Instant.now());
         }
@@ -258,7 +256,7 @@ public class PostService {
         post.setUser(user);
         post.setCreatedAt(createdAt != null ? createdAt : Instant.now());
 
-        PGvector embedding = textEmbeddingService.embed(description);   // ← now directly PGvector
+        List<Float> embedding = textEmbeddingService.embed(description);
         post.setDescriptionEmbedding(embedding);
         post.setEmbeddingUpdatedAt(Instant.now());
 
@@ -296,7 +294,6 @@ public class PostService {
     }
 
     private PostSummary toPostSummaryDto(Post p, boolean hasLiked, boolean hasSaved, boolean followingAuthor) {
-        // (your original method — unchanged)
         PostSummary summary = new PostSummary();
         User author = p.getUser();
         if (author != null) {

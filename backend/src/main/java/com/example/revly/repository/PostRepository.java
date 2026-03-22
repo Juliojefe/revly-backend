@@ -1,7 +1,6 @@
 package com.example.revly.repository;
 
 import com.example.revly.model.Post;
-import com.pgvector.PGvector;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -70,7 +69,7 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
         """,
             countQuery = "SELECT COUNT(*) FROM post p WHERE p.description_embedding IS NOT NULL",
             nativeQuery = true)
-    Page<Integer> findPostIdsBySemanticSimilarity(@Param("embedding") PGvector embedding, Pageable pageable);
+    Page<Integer> findPostIdsBySemanticSimilarity(@Param("embedding") List<Float> embedding, Pageable pageable);
 
     // Tag search
     @Query("SELECT p.postId FROM Post p JOIN p.tags t WHERE LOWER(t.tagName) = LOWER(:tagName) " +
@@ -94,6 +93,6 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
             WHERE LOWER(t.tag_name) = LOWER(:tagName) AND p.description_embedding IS NOT NULL
             """,
             nativeQuery = true)
-    Page<Integer> findPostIdsByHybrid(@Param("embedding") PGvector embedding,
+    Page<Integer> findPostIdsByHybrid(@Param("embedding") List<Float> embedding,
                                       @Param("tagName") String tagName, Pageable pageable);
 }

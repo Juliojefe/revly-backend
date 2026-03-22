@@ -2,12 +2,14 @@ package com.example.revly.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import com.pgvector.PGvector;
 
 @Entity
 @Table(name = "post")
@@ -29,9 +31,9 @@ public class Post {
     @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private Instant createdAt;
 
-    // === Direct embedding storage (simple & fast) ===
+    @JdbcTypeCode(SqlTypes.VECTOR)
     @Column(name = "description_embedding", columnDefinition = "vector(1536)")
-    private PGvector descriptionEmbedding;
+    private List<Float> descriptionEmbedding;
 
     @Column(name = "embedding_updated_at")
     private Instant embeddingUpdatedAt;
@@ -72,11 +74,11 @@ public class Post {
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
-    public PGvector getDescriptionEmbedding() {
+    public List<Float> getDescriptionEmbedding() {
         return descriptionEmbedding;
     }
 
-    public void setDescriptionEmbedding(PGvector descriptionEmbedding) {
+    public void setDescriptionEmbedding(List<Float> descriptionEmbedding) {
         this.descriptionEmbedding = descriptionEmbedding;
     }
 

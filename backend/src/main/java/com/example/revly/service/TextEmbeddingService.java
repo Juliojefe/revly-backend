@@ -3,7 +3,6 @@ package com.example.revly.service;
 import com.example.revly.config.OpenAiProperties;
 import com.example.revly.exception.NonRetryableEmbeddingException;
 import com.example.revly.exception.RetryableEmbeddingException;
-import com.pgvector.PGvector;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -23,8 +22,7 @@ public class TextEmbeddingService {
         this.props = props;
     }
 
-    // CHANGED: Now returns PGvector directly (no more List<Float>)
-    public PGvector embed(String text) {
+    public List<Float> embed(String text) {
         String normalized = normalize(text);
 
         EmbeddingsRequest req = new EmbeddingsRequest(
@@ -57,8 +55,7 @@ public class TextEmbeddingService {
                 );
             }
 
-            // Convert to PGvector (the library handles this cleanly)
-            return new PGvector(vector);
+            return vector;
 
         } catch (RetryableEmbeddingException | NonRetryableEmbeddingException e) {
             throw e;

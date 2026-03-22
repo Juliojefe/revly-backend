@@ -7,7 +7,6 @@ import com.example.revly.model.PostImage;
 import com.example.revly.model.User;
 import com.example.revly.repository.PostRepository;
 import com.example.revly.repository.UserRepository;
-import com.pgvector.PGvector;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -33,7 +32,7 @@ public class SearchService {
         if (query == null || query.trim().isEmpty()) {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
-        PGvector embedding = textEmbeddingService.embed(query.trim());   // ← now returns PGvector
+        List<Float> embedding = textEmbeddingService.embed(query.trim());
         Page<Integer> postIdsPage = postRepository.findPostIdsBySemanticSimilarity(embedding, pageable);
         return buildPostSummaryPage(postIdsPage, pageable, currentUser);
     }
@@ -51,7 +50,7 @@ public class SearchService {
         if (query == null || query.trim().isEmpty() || tag == null || tag.trim().isEmpty()) {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
-        PGvector embedding = textEmbeddingService.embed(query.trim());   // ← now returns PGvector
+        List<Float> embedding = textEmbeddingService.embed(query.trim());
         String normalizedTag = tag.trim().toLowerCase();
         Page<Integer> postIdsPage = postRepository.findPostIdsByHybrid(embedding, normalizedTag, pageable);
         return buildPostSummaryPage(postIdsPage, pageable, currentUser);
