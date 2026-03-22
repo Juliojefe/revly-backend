@@ -22,8 +22,6 @@ public class SearchController {
     @Autowired private SearchService searchService;
     @Autowired private UserRepository userRepository;
 
-    // ===================== POST SEARCHES (works for guests + logged-in users) =====================
-
     @GetMapping("/posts/text")
     public ResponseEntity<Page<PostSummary>> searchByText(
             @RequestParam String query,
@@ -32,7 +30,7 @@ public class SearchController {
             Principal principal) {
 
         User user = getUserOrNull(principal);
-        Pageable pageable = PageRequest.of(page, size); // similarity order is handled by DB
+        Pageable pageable = PageRequest.of(page, size);
         return ResponseEntity.ok(searchService.searchPostsByText(query, pageable, user));
     }
 
@@ -62,7 +60,6 @@ public class SearchController {
     }
 
     // ===================== USER SEARCH =====================
-
     @GetMapping("/users")
     public ResponseEntity<Page<UserSearchResult>> searchUsers(
             @RequestParam String query,

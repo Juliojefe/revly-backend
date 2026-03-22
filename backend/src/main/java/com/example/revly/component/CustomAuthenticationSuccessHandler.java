@@ -1,6 +1,5 @@
 package com.example.revly.component;
 
-import com.example.revly.exception.UnauthorizedException;
 import com.example.revly.service.AuthService;
 import com.example.revly.dto.request.GoogleUserRegisterRequest;
 import com.example.revly.dto.response.AuthResponse;
@@ -41,7 +40,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
 
             // Try login first
             AuthResponse resp = authService.googleLogin(googleId);
-            // If login fails (no no token), auto-register
+            // If login fails (no token), auto-register
             if (resp.getAccessToken() == null) {
                 GoogleUserRegisterRequest registerRequest =
                         new GoogleUserRegisterRequest(googleId, email, name, finalProfilePic);
@@ -56,7 +55,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
     // Helper method to build the redirect URL for success or internal errors
     private void buildRedirect(HttpServletResponse response, AuthResponse authResponse) throws IOException {
         String baseUrl = allowedOrigin + "/auth-callback";
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(baseUrl);
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(baseUrl);   // ← FIXED
 
         if (authResponse != null && authResponse.getAccessToken() != null) {
             uriBuilder.queryParam("name", authResponse.getName());
@@ -83,7 +82,7 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
     // Helper method for error redirects (e.g., attribute missing or other exceptions)
     private void buildErrorRedirect(HttpServletResponse response, String errorMessage) throws IOException {
         String baseUrl = allowedOrigin + "/auth-callback";
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(baseUrl)
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(baseUrl)
                 .queryParam("error", errorMessage != null ? errorMessage : "An unexpected error occurred");
         response.sendRedirect(uriBuilder.toUriString());
     }

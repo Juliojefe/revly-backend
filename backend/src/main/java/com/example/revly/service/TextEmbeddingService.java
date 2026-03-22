@@ -80,13 +80,17 @@ public class TextEmbeddingService {
             return new RetryableEmbeddingException("Embedding request failed (network/timeout): " + t.getMessage(), t);
         }
         WebClientResponseException e = (WebClientResponseException) t;
-        HttpStatus status = HttpStatus.resolve(e.getRawStatusCode());
-        if (status != null && (status == HttpStatus.TOO_MANY_REQUESTS || status.is5xxServerError())) {
+
+        // FIXED for Spring 6.2+
+        int statusCode = e.getStatusCode().value();
+
+        HttpStatus status = HttpStatus.valueOf(statusCode);
+        if (status == HttpStatus.TOO_MANY_REQUESTS || status.is5xxServerError()) {
             return new RetryableEmbeddingException(
-                    "Embedding provider temporary error (" + e.getRawStatusCode() + "): " + safeBody(e), e);
+                    "Embedding provider temporary error (" + statusCode + "): " + safeBody(e), e);
         }
         return new NonRetryableEmbeddingException(
-                "Embedding provider non-retryable error (" + e.getRawStatusCode() + "): " + safeBody(e), e);
+                "Embedding provider non-retryable error (" + statusCode + "): " + safeBody(e), e);
     }
 
     private String safeBody(WebClientResponseException e) {
@@ -98,6 +102,7 @@ public class TextEmbeddingService {
         }
     }
 
+    // ... (EmbeddingsRequest and EmbeddingsResponse inner classes stay exactly the same)
     static final class EmbeddingsRequest {
         public final String model;
         public final Object input;

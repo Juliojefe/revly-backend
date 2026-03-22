@@ -32,9 +32,15 @@ public class SearchService {
         if (query == null || query.trim().isEmpty()) {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
-        List<Float> embedding = textEmbeddingService.embed(query.trim());
-        Page<Integer> postIdsPage = postRepository.findPostIdsBySemanticSimilarity(embedding, pageable);
-        return buildPostSummaryPage(postIdsPage, pageable, currentUser);
+        List<Float> embeddingList = textEmbeddingService.embed(query.trim());
+
+        float[] embeddingArray = new float[embeddingList.size()];
+        for (int i = 0; i < embeddingList.size(); i++) {
+            embeddingArray[i] = embeddingList.get(i);
+        }
+
+        Page<Integer> postIdsPage = postRepository.findPostIdsBySemanticSimilarity(embeddingArray, pageable);
+        return buildPostSummaryPageFromIds(postIdsPage, pageable, currentUser);
     }
 
     public Page<PostSummary> searchPostsByTag(String tag, Pageable pageable, User currentUser) {
@@ -43,21 +49,27 @@ public class SearchService {
         }
         String normalized = tag.trim().toLowerCase();
         Page<Integer> postIdsPage = postRepository.findPostIdsByTag(normalized, pageable);
-        return buildPostSummaryPage(postIdsPage, pageable, currentUser);
+        return buildPostSummaryPageFromIds(postIdsPage, pageable, currentUser);
     }
 
     public Page<PostSummary> searchPostsHybrid(String query, String tag, Pageable pageable, User currentUser) {
         if (query == null || query.trim().isEmpty() || tag == null || tag.trim().isEmpty()) {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
-        List<Float> embedding = textEmbeddingService.embed(query.trim());
+        List<Float> embeddingList = textEmbeddingService.embed(query.trim());
+
+        float[] embeddingArray = new float[embeddingList.size()];
+        for (int i = 0; i < embeddingList.size(); i++) {
+            embeddingArray[i] = embeddingList.get(i);
+        }
+
         String normalizedTag = tag.trim().toLowerCase();
-        Page<Integer> postIdsPage = postRepository.findPostIdsByHybrid(embedding, normalizedTag, pageable);
-        return buildPostSummaryPage(postIdsPage, pageable, currentUser);
+
+        Page<Integer> postIdsPage = postRepository.findPostIdsByHybrid(embeddingArray, normalizedTag, pageable);
+        return buildPostSummaryPageFromIds(postIdsPage, pageable, currentUser);
     }
 
-    // Common builder (exactly like ExploreService)
-    private Page<PostSummary> buildPostSummaryPage(Page<Integer> postIdsPage, Pageable pageable, User currentUser) {
+    private Page<PostSummary> buildPostSummaryPageFromIds(Page<Integer> postIdsPage, Pageable pageable, User currentUser) {
         List<Integer> postIds = postIdsPage.getContent();
         if (postIds.isEmpty()) {
             return new PageImpl<>(Collections.emptyList(), pageable, postIdsPage.getTotalElements());
@@ -90,7 +102,6 @@ public class SearchService {
     }
 
     // ===================== USER SEARCH =====================
-
     public Page<UserSearchResult> searchUsers(String query, boolean mechanicOnly, Pageable pageable) {
         if (query == null || query.trim().isEmpty()) {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
@@ -111,7 +122,6 @@ public class SearchService {
     }
 
     // ===================== PRIVATE HELPERS =====================
-
     private Map<Integer, Long> loadLikeCounts(List<Integer> postIds) {
         List<Object[]> raw = postRepository.findLikeCountsByPostIds(postIds);
         return raw.stream().collect(Collectors.toMap(o -> (Integer) o[0], o -> (Long) o[1]));

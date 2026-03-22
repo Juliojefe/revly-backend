@@ -21,7 +21,7 @@ public class CustomAuthenticationFailureHandler implements AuthenticationFailure
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException {
         String baseUrl = allowedOrigin + "/auth-callback";
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(baseUrl)
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromUriString(baseUrl)   // ← FIXED
                 .queryParam("error", URLEncoder.encode(exception.getMessage(), StandardCharsets.UTF_8));
 
         response.sendRedirect(uriBuilder.toUriString());

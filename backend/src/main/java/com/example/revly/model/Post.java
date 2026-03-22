@@ -61,7 +61,7 @@ public class Post {
     )
     private Set<Tag> tags = new HashSet<>();
 
-
+    // Getters & Setters
     public Integer getPostId() { return postId; }
     public void setPostId(Integer postId) { this.postId = postId; }
 
@@ -100,7 +100,6 @@ public class Post {
     public Set<Comment> getComments() { return comments; }
     public void setComments(Set<Comment> comments) { this.comments = comments; }
 
-    // Backward compatibility (fixes ExploreService.java and any other old code)
     public List<PostImage> getPostImages() {
         return images;
     }
@@ -110,14 +109,10 @@ public class Post {
     }
 
     public Set<Integer> getCommentIds() {
-        try {
-            Set<Integer> ids = new HashSet<>();
-            for (Comment c : this.getComments()) {
-                ids.add(c.getCommentId());
-            }
-            return ids;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+        Set<Integer> ids = new HashSet<>();
+        for (Comment c : this.getComments()) {
+            ids.add(c.getCommentId());
         }
+        return ids;
     }
 }
