@@ -3,6 +3,7 @@ package com.example.revly.service;
 import com.example.revly.config.OpenAiProperties;
 import com.example.revly.exception.NonRetryableEmbeddingException;
 import com.example.revly.exception.RetryableEmbeddingException;
+import com.pgvector.PGvector;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,7 +23,8 @@ public class TextEmbeddingService {
         this.props = props;
     }
 
-    public List<Float> embed(String text) {
+    // CHANGED: Now returns PGvector directly (no more List<Float>)
+    public PGvector embed(String text) {
         String normalized = normalize(text);
 
         EmbeddingsRequest req = new EmbeddingsRequest(
@@ -55,12 +57,12 @@ public class TextEmbeddingService {
                 );
             }
 
-            return vector;
+            // Convert to PGvector (the library handles this cleanly)
+            return new PGvector(vector);
 
         } catch (RetryableEmbeddingException | NonRetryableEmbeddingException e) {
             throw e;
         } catch (Exception e) {
-            // Anything unexpected locally: treat as retryable (network, transient serialization, etc.)
             throw new RetryableEmbeddingException("Unexpected embedding failure: " + e.getMessage(), e);
         }
     }
@@ -77,40 +79,27 @@ public class TextEmbeddingService {
     }
 
     private Throwable mapToEmbeddingException(Throwable t) {
-        // Timeouts / connection issues / DNS / etc.
         if (!(t instanceof WebClientResponseException)) {
             return new RetryableEmbeddingException("Embedding request failed (network/timeout): " + t.getMessage(), t);
         }
-
         WebClientResponseException e = (WebClientResponseException) t;
         HttpStatus status = HttpStatus.resolve(e.getRawStatusCode());
-
-        // Retryable: rate limiting + provider/server errors
         if (status != null && (status == HttpStatus.TOO_MANY_REQUESTS || status.is5xxServerError())) {
             return new RetryableEmbeddingException(
-                    "Embedding provider temporary error (" + e.getRawStatusCode() + "): " + safeBody(e),
-                    e
-            );
+                    "Embedding provider temporary error (" + e.getRawStatusCode() + "): " + safeBody(e), e);
         }
-
-        // Non-retryable: auth/config/payload issues
         return new NonRetryableEmbeddingException(
-                "Embedding provider non-retryable error (" + e.getRawStatusCode() + "): " + safeBody(e),
-                e
-        );
+                "Embedding provider non-retryable error (" + e.getRawStatusCode() + "): " + safeBody(e), e);
     }
 
     private String safeBody(WebClientResponseException e) {
         try {
             String body = e.getResponseBodyAsString();
-            if (body == null) return "";
             return body.length() > 500 ? body.substring(0, 500) + "…" : body;
         } catch (Exception ex) {
             return "";
         }
     }
-
-    // --- DTOs for /v1/embeddings ---
 
     static final class EmbeddingsRequest {
         public final String model;
@@ -120,9 +109,9 @@ public class TextEmbeddingService {
 
         EmbeddingsRequest(String model, String input, Integer dimensions, String encoding_format) {
             this.model = model;
-            this.input = input;                 // OpenAI accepts string or array; we use string
-            this.dimensions = dimensions;       // must be 1536 for your schema
-            this.encoding_format = encoding_format; // "float" so we get numbers
+            this.input = input;
+            this.dimensions = dimensions;
+            this.encoding_format = encoding_format;
         }
     }
 

@@ -1,8 +1,10 @@
 package com.example.revly.repository;
+
 import com.example.revly.model.Post;
+import com.pgvector.PGvector;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -58,7 +60,8 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     @Query("SELECT p.postId FROM Post p JOIN p.savers s WHERE s.userId = :userId AND p.postId IN :postIds")
     List<Integer> findSavedPostIdsForUser(@Param("postIds") List<Integer> postIds, @Param("userId") Integer userId);
 
-    // Semantic (text) search – ordered by embedding similarity (pgvector <=> = cosine distance)
+    // ==================== SEMANTIC SEARCH (pgvector) ====================
+    // Semantic (text) search – ordered by embedding similarity (cosine distance)
     @Query(value = """
         SELECT p.post_id 
         FROM post p 
@@ -67,7 +70,7 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
         """,
             countQuery = "SELECT COUNT(*) FROM post p WHERE p.description_embedding IS NOT NULL",
             nativeQuery = true)
-    Page<Integer> findPostIdsBySemanticSimilarity(@Param("embedding") List<Float> embedding, Pageable pageable);
+    Page<Integer> findPostIdsBySemanticSimilarity(@Param("embedding") PGvector embedding, Pageable pageable);
 
     // Tag search
     @Query("SELECT p.postId FROM Post p JOIN p.tags t WHERE LOWER(t.tagName) = LOWER(:tagName) " +
@@ -91,6 +94,6 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
             WHERE LOWER(t.tag_name) = LOWER(:tagName) AND p.description_embedding IS NOT NULL
             """,
             nativeQuery = true)
-    Page<Integer> findPostIdsByHybrid(@Param("embedding") List<Float> embedding,
+    Page<Integer> findPostIdsByHybrid(@Param("embedding") PGvector embedding,
                                       @Param("tagName") String tagName, Pageable pageable);
 }

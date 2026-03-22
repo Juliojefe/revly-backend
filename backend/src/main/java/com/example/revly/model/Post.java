@@ -7,9 +7,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.hibernate.annotations.Array;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import com.pgvector.PGvector;
 
 @Entity
 @Table(name = "post")
@@ -32,11 +30,8 @@ public class Post {
     private Instant createdAt;
 
     // === Direct embedding storage (simple & fast) ===
-    @Transient
-    @Column(name = "description_embedding")
-    @JdbcTypeCode(SqlTypes.VECTOR)
-    @Array(length = 1536)
-    private float[] descriptionEmbedding;
+    @Column(name = "description_embedding", columnDefinition = "vector(1536)")
+    private PGvector descriptionEmbedding;
 
     @Column(name = "embedding_updated_at")
     private Instant embeddingUpdatedAt;
@@ -77,11 +72,11 @@ public class Post {
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
-    public float[] getDescriptionEmbedding() {
+    public PGvector getDescriptionEmbedding() {
         return descriptionEmbedding;
     }
 
-    public void setDescriptionEmbedding(float[] descriptionEmbedding) {
+    public void setDescriptionEmbedding(PGvector descriptionEmbedding) {
         this.descriptionEmbedding = descriptionEmbedding;
     }
 

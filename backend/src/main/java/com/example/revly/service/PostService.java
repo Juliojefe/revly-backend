@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.pgvector.PGvector;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -46,29 +47,17 @@ public class PostService {
     @Transactional(readOnly = true)
     public PostSummary getPostSummaryById(int postId, User u) {
         Optional<Post> optPost = postRepository.findById(postId);
-        if (optPost.isEmpty()) {
-            return new PostSummary();
-        }
-
+        if (optPost.isEmpty()) return new PostSummary();
         Post p = optPost.get();
         User author = p.getUser();
-
         boolean followingAuthor = false;
         boolean hasLiked = false;
         boolean hasSaved = false;
-
         if (u != null) {
-            if (author != null && author.getFollowers() != null) {
-                followingAuthor = author.getFollowers().contains(u);
-            }
-            if (u.getLikedPosts() != null) {
-                hasLiked = u.getLikedPosts().contains(p);
-            }
-            if (u.getSavedPosts() != null) {
-                hasSaved = u.getSavedPosts().contains(p);
-            }
+            if (author != null && author.getFollowers() != null) followingAuthor = author.getFollowers().contains(u);
+            if (u.getLikedPosts() != null) hasLiked = u.getLikedPosts().contains(p);
+            if (u.getSavedPosts() != null) hasSaved = u.getSavedPosts().contains(p);
         }
-
         return toPostSummaryDto(p, hasLiked, hasSaved, followingAuthor);
     }
 
@@ -202,20 +191,12 @@ public class PostService {
     @Transactional
     public CreatePostConfirmation createPost(CreatePostRequestUrl request, int userId) {
         Optional<User> optUser = userRepository.findById(userId);
-        if (optUser.isEmpty()) {
-            throw new ResourceNotFoundException("User not found with id: " + userId);
-        }
-        if (request.getDescription().isEmpty()) {
-            return new CreatePostConfirmation(false, "Description must not be empty");
-        }
+        if (optUser.isEmpty()) throw new ResourceNotFoundException("User not found with id: " + userId);
+        if (request.getDescription().isEmpty()) return new CreatePostConfirmation(false, "Description must not be empty");
 
         User user = optUser.get();
         List<PostImage> postImages = request.getImages().stream()
-                .map(url -> {
-                    PostImage pi = new PostImage();
-                    pi.setImageUrl(url);
-                    return pi;
-                })
+                .map(url -> { PostImage pi = new PostImage(); pi.setImageUrl(url); return pi; })
                 .collect(Collectors.toList());
 
         Post savedPost = createPostCore(request.getDescription(), request.getCreatedAt(), postImages, request.getTags(), user);
@@ -225,21 +206,14 @@ public class PostService {
     @Transactional
     public CreatePostConfirmation createPost(CreatePostRequestImages requestImages, int userId) throws IOException {
         Optional<User> optUser = userRepository.findById(userId);
-        if (optUser.isEmpty()) {
-            throw new ResourceNotFoundException("User not found with id: " + userId);
-        }
-        if (requestImages.getDescription().isEmpty()) {
-            return new CreatePostConfirmation(false, "Description must not be empty");
-        }
+        if (optUser.isEmpty()) throw new ResourceNotFoundException("User not found with id: " + userId);
+        if (requestImages.getDescription().isEmpty()) return new CreatePostConfirmation(false, "Description must not be empty");
 
         User user = optUser.get();
-
         List<PostImage> postImages = new ArrayList<>();
         for (MultipartFile file : requestImages.getImages()) {
             String imageUrl = fileUploadService.uploadFile(file);
-            PostImage pi = new PostImage();
-            pi.setImageUrl(imageUrl);
-            postImages.add(pi);
+            PostImage pi = new PostImage(); pi.setImageUrl(imageUrl); postImages.add(pi);
         }
 
         Post savedPost = createPostCore(requestImages.getDescription(), requestImages.getCreatedAt(), postImages, requestImages.getTags(), user);
@@ -248,84 +222,49 @@ public class PostService {
 
     @Transactional
     public CreatePostConfirmation updatePost(Integer postId, UpdatePostRequest request, int userId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
-
+        Post post = postRepository.findById(postId).orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
         if (post.getUser() == null || !Objects.equals(post.getUser().getUserId(), userId)) {
             throw new UnauthorizedException("Only the post owner can update this post");
         }
 
         String newDescription = request.getDescription();
         List<String> newTags = request.getTags();
-
         boolean descriptionChanged = false;
 
-        // 1. Description update
         if (newDescription != null) {
             String trimmed = newDescription.trim();
-            if (trimmed.isEmpty()) {
-                return new CreatePostConfirmation(false, "Description must not be empty");
-            }
+            if (trimmed.isEmpty()) return new CreatePostConfirmation(false, "Description must not be empty");
             if (!trimmed.equals(post.getDescription())) {
                 post.setDescription(trimmed);
                 descriptionChanged = true;
             }
         }
 
-        // 2. Tags update (full replace)
-        if (newTags != null) {
-            syncPostTags(post, newTags);
-        }
+        if (newTags != null) syncPostTags(post, newTags);
 
-        // 3. Generate fresh embedding if description changed
         if (descriptionChanged) {
-            List<Float> embeddingList = textEmbeddingService.embed(newDescription);
-            post.setDescriptionEmbedding(toFloatArray(embeddingList));
+            PGvector embedding = textEmbeddingService.embed(newDescription);   // ← now directly PGvector
+            post.setDescriptionEmbedding(embedding);
             post.setEmbeddingUpdatedAt(Instant.now());
         }
 
-        Post savedPost = postRepository.save(post);
+        postRepository.save(post);
         return new CreatePostConfirmation(true, "Post updated successfully!");
     }
 
-    // Helper: Sync tags
-    private void syncPostTags(Post post, List<String> rawTags) {
-        Set<String> normalized = tagNormalizationService.normalizeTags(rawTags);
-
-        post.getTags().removeIf(tag -> !normalized.contains(tag.getTagName()));
-
-        for (String normTag : normalized) {
-            if (post.getTags().stream().noneMatch(t -> t.getTagName().equals(normTag))) {
-                Tag tag = tagRepository.findByTagName(normTag)
-                        .orElseGet(() -> {
-                            Tag newTag = new Tag();
-                            newTag.setTagName(normTag);
-                            return tagRepository.save(newTag);
-                        });
-                post.getTags().add(tag);
-            }
-        }
-    }
-
-    // Core creation logic
     private Post createPostCore(String description, Instant createdAt, List<PostImage> postImages, List<String> rawTags, User user) {
         Post post = new Post();
         post.setDescription(description);
         post.setUser(user);
         post.setCreatedAt(createdAt != null ? createdAt : Instant.now());
 
-        // Generate embedding BEFORE saving (one transaction, one DB write)
-        List<Float> embeddingList = textEmbeddingService.embed(description);
-        post.setDescriptionEmbedding(toFloatArray(embeddingList));
+        PGvector embedding = textEmbeddingService.embed(description);   // ← now directly PGvector
+        post.setDescriptionEmbedding(embedding);
         post.setEmbeddingUpdatedAt(Instant.now());
 
-        // Images
         post.setImages(postImages);
-        for (PostImage img : postImages) {
-            img.setPost(post);
-        }
+        for (PostImage img : postImages) img.setPost(post);
 
-        // Tags
         Set<String> normalizedTags = tagNormalizationService.normalizeTags(rawTags);
         for (String normTag : normalizedTags) {
             Tag tag = tagRepository.findByTagName(normTag)
@@ -340,10 +279,26 @@ public class PostService {
         return postRepository.save(post);
     }
 
+    private void syncPostTags(Post post, List<String> rawTags) {
+        Set<String> normalized = tagNormalizationService.normalizeTags(rawTags);
+        post.getTags().removeIf(tag -> !normalized.contains(tag.getTagName()));
+        for (String normTag : normalized) {
+            if (post.getTags().stream().noneMatch(t -> t.getTagName().equals(normTag))) {
+                Tag tag = tagRepository.findByTagName(normTag)
+                        .orElseGet(() -> {
+                            Tag newTag = new Tag();
+                            newTag.setTagName(normTag);
+                            return tagRepository.save(newTag);
+                        });
+                post.getTags().add(tag);
+            }
+        }
+    }
+
     private PostSummary toPostSummaryDto(Post p, boolean hasLiked, boolean hasSaved, boolean followingAuthor) {
+        // (your original method — unchanged)
         PostSummary summary = new PostSummary();
         User author = p.getUser();
-
         if (author != null) {
             summary.setAuthorId(author.getUserId());
             summary.setCreatedBy(author.getName());
@@ -351,34 +306,17 @@ public class PostService {
             boolean isMechanic = author.getUserRoles() != null && Boolean.TRUE.equals(author.getUserRoles().getIsMechanic());
             summary.setAuthorIsMechanic(isMechanic);
         } else {
-            summary.setAuthorId(null);
-            summary.setCreatedBy(null);
-            summary.setCreatedByProfilePicUrl(null);
-            summary.setAuthorIsMechanic(false);
+            summary.setAuthorId(null); summary.setCreatedBy(null); summary.setCreatedByProfilePicUrl(null); summary.setAuthorIsMechanic(false);
         }
-
         summary.setPostId(p.getPostId());
         summary.setDescription(p.getDescription());
         summary.setCreatedAt(p.getCreatedAt());
         summary.setLikeCount(p.getLikers() == null ? 0 : p.getLikers().size());
-
-        List<String> imageUrls = p.getImages().stream()
-                .map(PostImage::getImageUrl)
-                .collect(Collectors.toList());
+        List<String> imageUrls = p.getImages().stream().map(PostImage::getImageUrl).collect(Collectors.toList());
         summary.setImageUrls(imageUrls);
-
         summary.setHasLiked(hasLiked);
         summary.setHasSaved(hasSaved);
         summary.setFollowingAuthor(followingAuthor);
         return summary;
-    }
-
-    private float[] toFloatArray(List<Float> list) {
-        if (list == null || list.isEmpty()) return new float[0];
-        float[] array = new float[list.size()];
-        for (int i = 0; i < list.size(); i++) {
-            array[i] = list.get(i) != null ? list.get(i) : 0f;
-        }
-        return array;
     }
 }
