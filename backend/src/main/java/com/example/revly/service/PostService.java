@@ -279,8 +279,8 @@ public class PostService {
 
         // 3. Generate fresh embedding if description changed
         if (descriptionChanged) {
-            List<Float> embedding = textEmbeddingService.embed(post.getDescription());
-            post.setDescriptionEmbedding(embedding);
+            List<Float> embeddingList = textEmbeddingService.embed(newDescription);
+            post.setDescriptionEmbedding(toFloatArray(embeddingList));
             post.setEmbeddingUpdatedAt(Instant.now());
         }
 
@@ -315,8 +315,8 @@ public class PostService {
         post.setCreatedAt(createdAt != null ? createdAt : Instant.now());
 
         // Generate embedding BEFORE saving (one transaction, one DB write)
-        List<Float> embedding = textEmbeddingService.embed(description);
-        post.setDescriptionEmbedding(embedding);
+        List<Float> embeddingList = textEmbeddingService.embed(description);
+        post.setDescriptionEmbedding(toFloatArray(embeddingList));
         post.setEmbeddingUpdatedAt(Instant.now());
 
         // Images
@@ -371,5 +371,14 @@ public class PostService {
         summary.setHasSaved(hasSaved);
         summary.setFollowingAuthor(followingAuthor);
         return summary;
+    }
+
+    private float[] toFloatArray(List<Float> list) {
+        if (list == null || list.isEmpty()) return new float[0];
+        float[] array = new float[list.size()];
+        for (int i = 0; i < list.size(); i++) {
+            array[i] = list.get(i) != null ? list.get(i) : 0f;
+        }
+        return array;
     }
 }
