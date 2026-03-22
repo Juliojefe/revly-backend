@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '3.4.5'
+	id 'org.springframework.boot' version '4.0.4'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
 
@@ -37,6 +37,10 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 	implementation 'org.springframework.boot:spring-boot-starter-websocket'
 	implementation 'org.springframework.security:spring-security-messaging'
+	implementation 'org.springframework.boot:spring-boot-starter'
+	implementation 'com.openai:openai-java:4.29.0'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	implementation 'org.hibernate.orm:hibernate-vector:6.6.13.Final'
 }
 
 tasks.named('test') {

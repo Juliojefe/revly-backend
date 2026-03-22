@@ -2,6 +2,7 @@ package com.example.revly.controller;
 
 import com.example.revly.dto.request.CreatePostRequestImages;
 import com.example.revly.dto.request.CreatePostRequestUrl;
+import com.example.revly.dto.request.UpdatePostRequest;
 import com.example.revly.dto.response.CreatePostConfirmation;
 import com.example.revly.dto.response.PostSummary;
 import com.example.revly.exception.UnauthorizedException;
@@ -109,13 +110,25 @@ public class PostController {
             @RequestParam("description") String description,
             @RequestParam("createdAt") String createdAt,
             @RequestParam(value = "requestImages", required = false) List<MultipartFile> images,
+            @RequestParam(value = "tags", required = false) List<String> tags,
             Principal principal
     ) throws IOException {
-        List<MultipartFile> imageList = images != null ? images : new ArrayList<>();    //  empty?
+        List<MultipartFile> imageList = images != null ? images : new ArrayList<>();
+        List<String> tagList = tags != null ? tags : new ArrayList<>();
 
-        CreatePostRequestImages request = new CreatePostRequestImages(description, Instant.parse(createdAt), imageList);
+        CreatePostRequestImages request = new CreatePostRequestImages(description, Instant.parse(createdAt), imageList, tagList);
         User user = getUserFromPrincipalOrThrow(principal);
         return ResponseEntity.ok(postService.createPost(request, user.getUserId()));
+    }
+
+    @PatchMapping("/update/{postId}")
+    public ResponseEntity<CreatePostConfirmation> updatePost(
+            @PathVariable Integer postId,
+            @RequestBody UpdatePostRequest request,
+            Principal principal) {
+
+        User user = getUserFromPrincipalOrThrow(principal);
+        return ResponseEntity.ok(postService.updatePost(postId, request, user.getUserId()));
     }
 
     private User getUserFromPrincipalOrThrow(Principal principal) {

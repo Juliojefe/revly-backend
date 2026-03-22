@@ -37,7 +37,7 @@ public class GeocodeService {
         int safeLimit = clamp(limit, 1, 20);
 
         URI uri = UriComponentsBuilder
-                .fromHttpUrl(LOCATIONIQ_BASE + "/autocomplete")
+                .fromUriString(LOCATIONIQ_BASE + "/autocomplete")   // ← FIXED
                 .queryParam("key", locationIqKey)
                 .queryParam("q", q)
                 .queryParam("limit", safeLimit)
@@ -51,10 +51,11 @@ public class GeocodeService {
             List<Map<String, Object>> body = (List<Map<String, Object>>) resp.getBody();
             return (body == null) ? List.of() : body;
         } catch (RestClientResponseException e) {
-            log.error("LocationIQ autocomplete failed status={} body={}", e.getRawStatusCode(), e.getResponseBodyAsString());
+            int status = e.getStatusCode().value();   // ← FIXED
+            log.error("LocationIQ autocomplete failed status={} body={}", status, e.getResponseBodyAsString());
             throw new ResponseStatusException(
                     BAD_GATEWAY,
-                    "LocationIQ autocomplete failed: " + e.getRawStatusCode() + " " + safeBody(e.getResponseBodyAsString())
+                    "LocationIQ autocomplete failed: " + status + " " + safeBody(e.getResponseBodyAsString())
             );
         } catch (Exception e) {
             log.error("Unexpected error calling LocationIQ autocomplete", e);
@@ -72,7 +73,7 @@ public class GeocodeService {
         int safeLimit = clamp(limit, 1, 20);
 
         URI uri = UriComponentsBuilder
-                .fromHttpUrl(LOCATIONIQ_BASE + "/search")
+                .fromUriString(LOCATIONIQ_BASE + "/search")   // ← FIXED
                 .queryParam("key", locationIqKey)
                 .queryParam("q", q)
                 .queryParam("limit", safeLimit)
@@ -86,10 +87,11 @@ public class GeocodeService {
             List<Map<String, Object>> body = (List<Map<String, Object>>) resp.getBody();
             return (body == null) ? List.of() : body;
         } catch (RestClientResponseException e) {
-            log.error("LocationIQ search failed status={} body={}", e.getRawStatusCode(), e.getResponseBodyAsString());
+            int status = e.getStatusCode().value();   // ← FIXED
+            log.error("LocationIQ search failed status={} body={}", status, e.getResponseBodyAsString());
             throw new ResponseStatusException(
                     BAD_GATEWAY,
-                    "LocationIQ search failed: " + e.getRawStatusCode() + " " + safeBody(e.getResponseBodyAsString())
+                    "LocationIQ search failed: " + status + " " + safeBody(e.getResponseBodyAsString())
             );
         } catch (Exception e) {
             log.error("Unexpected error calling LocationIQ search", e);
