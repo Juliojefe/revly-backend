@@ -209,6 +209,36 @@ public class UserService {
         return true;
     }
 
+    public Boolean updateBusinessLocation(int userId, UpdateBusinessLocationRequest request) {
+        Optional<User> user = userRepository.findById(userId);
+        if (user.isEmpty()) {
+            throw new ResourceNotFoundException("User not found with id: " + userId);
+        }
+
+        User tempUser = user.get();
+        String nextAddress = request.getAddress() == null ? null : request.getAddress().trim();
+        Double nextLat = request.getLat();
+        Double nextLon = request.getLon();
+
+        boolean isClearing = nextAddress == null || nextAddress.isEmpty();
+
+        if (isClearing) {
+            tempUser.setBusinessAddress(null);
+            tempUser.setBusinessLat(null);
+            tempUser.setBusinessLon(null);
+        } else {
+            if (nextLat == null || nextLon == null) {
+                throw new BadRequestException("Business latitude and longitude are required when address is set");
+            }
+            tempUser.setBusinessAddress(nextAddress);
+            tempUser.setBusinessLat(nextLat);
+            tempUser.setBusinessLon(nextLon);
+        }
+
+        userRepository.save(tempUser);
+        return true;
+    }
+
     public void deleteUser(int requestUserId) {
         Optional<User> user = userRepository.findById(requestUserId);
         if (user.isEmpty()) {
