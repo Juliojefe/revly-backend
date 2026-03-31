@@ -28,6 +28,9 @@ public class SearchService {
     @Autowired
     private TextEmbeddingService textEmbeddingService;
 
+    @Autowired
+    private TagNormalizationService tagNormalizationService;
+
     public Page<PostSummary> searchPostsByText(String query, Pageable pageable, User currentUser) {
         if (query == null || query.trim().isEmpty()) {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
@@ -43,29 +46,35 @@ public class SearchService {
         return buildPostSummaryPageFromIds(postIdsPage, pageable, currentUser);
     }
 
-    public Page<PostSummary> searchPostsByTag(String tag, Pageable pageable, User currentUser) {
-        if (tag == null || tag.trim().isEmpty()) {
+    public Page<PostSummary> searchPostsByTag(String tagInput, Pageable pageable, User currentUser) {
+        if (tagInput == null || tagInput.trim().isEmpty()) {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
-        String normalized = tag.trim().toLowerCase();
-        Page<Integer> postIdsPage = postRepository.findPostIdsByTag(normalized, pageable);
+        // split on whitespace and normalize
+        List<String> rawTags = Arrays.asList(tagInput.trim().split("\\s+"));
+        Set<String> normalizedTags = tagNormalizationService.normalizeTags(rawTags);
+        if (normalizedTags.isEmpty()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+        }
+        Page<Integer> postIdsPage = postRepository.findPostIdsByAnyTag(normalizedTags, pageable);
         return buildPostSummaryPageFromIds(postIdsPage, pageable, currentUser);
     }
 
-    public Page<PostSummary> searchPostsHybrid(String query, String tag, Pageable pageable, User currentUser) {
-        if (query == null || query.trim().isEmpty() || tag == null || tag.trim().isEmpty()) {
+    public Page<PostSummary> searchPostsHybrid(String query, String tagInput, Pageable pageable, User currentUser) {
+        if (query == null || query.trim().isEmpty() || tagInput == null || tagInput.trim().isEmpty()) {
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
         List<Float> embeddingList = textEmbeddingService.embed(query.trim());
-
         float[] embeddingArray = new float[embeddingList.size()];
         for (int i = 0; i < embeddingList.size(); i++) {
             embeddingArray[i] = embeddingList.get(i);
         }
-
-        String normalizedTag = tag.trim().toLowerCase();
-
-        Page<Integer> postIdsPage = postRepository.findPostIdsByHybrid(embeddingArray, normalizedTag, pageable);
+        List<String> rawTags = Arrays.asList(tagInput.trim().split("\\s+"));
+        Set<String> normalizedTags = tagNormalizationService.normalizeTags(rawTags);
+        if (normalizedTags.isEmpty()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+        }
+        Page<Integer> postIdsPage = postRepository.findPostIdsByHybridAnyTags(embeddingArray, normalizedTags, pageable);
         return buildPostSummaryPageFromIds(postIdsPage, pageable, currentUser);
     }
 
