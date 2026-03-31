@@ -51,23 +51,43 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
             "ORDER BY p.createdAt DESC, p.postId DESC")
     Page<Integer> findPostIdsByTag(@Param("tagName") String tagName, Pageable pageable);
 
-    // Hybrid search
+    // multi-tag search
+    @Query("""
+    SELECT p.postId 
+    FROM Post p 
+    WHERE EXISTS (
+        SELECT 1 FROM p.tags t 
+        WHERE t.tagName IN :tagNames
+    )
+    ORDER BY p.createdAt DESC, p.postId DESC
+    """)
+    Page<Integer> findPostIdsByAnyTag(@Param("tagNames") Set<String> tagNames, Pageable pageable);
+
+    // Hybrid search – semantic similarity + any of the provided tags
     @Query(value = """
-        SELECT p.post_id 
-        FROM post p 
-        JOIN post_tag pt ON p.post_id = pt.post_id
-        JOIN tag t ON pt.tag_id = t.tag_id
-        WHERE LOWER(t.tag_name) = LOWER(:tagName)
-          AND p.description_embedding IS NOT NULL
-        ORDER BY p.description_embedding <=> CAST(:embedding AS vector)
-        """,
+    SELECT p.post_id 
+    FROM post p 
+    WHERE EXISTS (
+        SELECT 1 FROM post_tag pt 
+        JOIN tag t ON pt.tag_id = t.tag_id 
+        WHERE pt.post_id = p.post_id 
+          AND t.tag_name IN (:tagNames)
+    )
+      AND p.description_embedding IS NOT NULL
+    ORDER BY p.description_embedding <=> CAST(:embedding AS vector)
+    """,
             countQuery = """
-            SELECT COUNT(*) FROM post p 
-            JOIN post_tag pt ON p.post_id = pt.post_id
-            JOIN tag t ON pt.tag_id = t.tag_id 
-            WHERE LOWER(t.tag_name) = LOWER(:tagName) AND p.description_embedding IS NOT NULL
-            """,
+    SELECT COUNT(*) FROM post p 
+    WHERE EXISTS (
+        SELECT 1 FROM post_tag pt 
+        JOIN tag t ON pt.tag_id = t.tag_id 
+        WHERE pt.post_id = p.post_id 
+          AND t.tag_name IN (:tagNames)
+    )
+      AND p.description_embedding IS NOT NULL
+    """,
             nativeQuery = true)
-    Page<Integer> findPostIdsByHybrid(@Param("embedding") float[] embedding,
-                                      @Param("tagName") String tagName, Pageable pageable);
+    Page<Integer> findPostIdsByHybridAnyTags(@Param("embedding") float[] embedding,
+                                             @Param("tagNames") Set<String> tagNames,
+                                             Pageable pageable);
 }
