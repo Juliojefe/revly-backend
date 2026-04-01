@@ -159,12 +159,10 @@ public class SearchService {
         summary.setFollowingAuthor(followingAuthor);
         return summary;
     }
-
+    
     /**
-     * Core builder used by ALL post searches.
-     * IMPORTANT: currentUser (from Principal) is fully taken into account here.
-     * For authenticated users → real hasLiked / hasSaved / followingAuthor values.
-     * For guests (currentUser == null) → all three flags stay false.
+     * core builder used by all post searches
+     * guest is handled differently than authenticated user
      */
     private Page<PostSummary> buildPostSummaryPageFromIds(Page<Integer> postIdsPage, Pageable pageable, User currentUser) {
         List<Integer> postIds = postIdsPage.getContent();
