@@ -159,7 +159,7 @@ public class SearchService {
         summary.setFollowingAuthor(followingAuthor);
         return summary;
     }
-    
+
     /**
      * core builder used by all post searches
      * guest is handled differently than authenticated user
