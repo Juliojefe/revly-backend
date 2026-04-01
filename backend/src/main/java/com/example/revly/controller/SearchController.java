@@ -59,16 +59,17 @@ public class SearchController {
         return ResponseEntity.ok(searchService.searchPostsHybrid(query, tag, pageable, user));
     }
 
-    // ===================== USER SEARCH =====================
     @GetMapping("/users")
     public ResponseEntity<Page<UserSearchResult>> searchUsers(
             @RequestParam String query,
             @RequestParam(defaultValue = "false") boolean mechanicOnly,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-
+            @RequestParam(defaultValue = "10") int size,
+            Principal principal) {
+        User currentUser = principal != null
+                ? userRepository.findByEmail(principal.getName()).orElse(null) : null;
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
-        return ResponseEntity.ok(searchService.searchUsers(query, mechanicOnly, pageable));
+        return ResponseEntity.ok(searchService.searchUsers(query, mechanicOnly, pageable, currentUser));
     }
 
     private User getUserOrNull(Principal principal) {

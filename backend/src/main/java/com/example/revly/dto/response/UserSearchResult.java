@@ -6,18 +6,22 @@ public class UserSearchResult {
     private String name;
     private String profilePic;
     private boolean isMechanic;
+    private boolean following;
 
-    public UserSearchResult(Integer userId, String name, String profilePic, boolean isMechanic) {
+    public UserSearchResult(Integer userId, String name, String profilePic, boolean isMechanic, boolean following) {
         this.userId = userId;
         this.name = name;
         this.profilePic = profilePic;
         this.isMechanic = isMechanic;
+        this.following = following;
     }
 
     public Integer getUserId() { return userId; }
     public String getName() { return name; }
     public String getProfilePic() { return profilePic; }
     public boolean isMechanic() { return isMechanic; }
+    public boolean isFollowing() { return following; }
+    public void setFollowing(boolean following) { this.following = following; }
 
     public void setUserId(Integer userId) {
         this.userId = userId;
