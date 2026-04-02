@@ -28,4 +28,15 @@ public class FileUploadService {
         s3Client.putObject(request, RequestBody.fromBytes(file.getBytes()));
         return s3Client.utilities().getUrl(builder -> builder.bucket(bucketName).key(fileName).build()).toString();
     }
+
+    public String uploadBytes(byte[] data, String fileName) {
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(fileName)
+                .build();
+        s3Client.putObject(request, RequestBody.fromBytes(data));
+        return s3Client.utilities()
+                .getUrl(builder -> builder.bucket(bucketName).key(fileName).build())
+                .toString();
+    }
 }

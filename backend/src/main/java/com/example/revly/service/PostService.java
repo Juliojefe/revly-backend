@@ -22,8 +22,24 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+
 @Service
 public class PostService {
+
+    private static final long MAX_TOTAL_IMAGES_SIZE_BYTES = 9L * 1024 * 1024; // 9 MB total per post
+    private static final long MIN_IMAGE_SIZE_BYTES = 150 * 1024;               // never go below ~150 KB per image
+    private static final int MAX_IMAGE_WIDTH = 1920;
+    private static final int MAX_IMAGE_HEIGHT = 1080;
+    private static final float MILD_COMPRESSION_QUALITY = 0.85f;   // normal uploads
+    private static final float AGGRESSIVE_COMPRESSION_QUALITY = 0.65f; // when over limit
 
     @Autowired
     private PostRepository postRepository;
@@ -205,13 +221,33 @@ public class PostService {
     public CreatePostConfirmation createPost(CreatePostRequestImages requestImages, int userId) throws IOException {
         Optional<User> optUser = userRepository.findById(userId);
         if (optUser.isEmpty()) throw new ResourceNotFoundException("User not found with id: " + userId);
-        if (requestImages.getDescription().isEmpty()) return new CreatePostConfirmation(false, "Description must not be empty");
+        if (requestImages.getDescription().isEmpty())
+            return new CreatePostConfirmation(false, "Description must not be empty");
 
         User user = optUser.get();
+
+        // ====================== SMART COMPRESSION ======================
+        List<MultipartFile> originalImages = requestImages.getImages();
+        long totalOriginalSize = originalImages.stream().mapToLong(MultipartFile::getSize).sum();
+
+        boolean isOverLimit = totalOriginalSize > MAX_TOTAL_IMAGES_SIZE_BYTES;
+        float quality = isOverLimit ? AGGRESSIVE_COMPRESSION_QUALITY : MILD_COMPRESSION_QUALITY;
+
         List<PostImage> postImages = new ArrayList<>();
-        for (MultipartFile file : requestImages.getImages()) {
-            String imageUrl = fileUploadService.uploadFile(file);
-            PostImage pi = new PostImage(); pi.setImageUrl(imageUrl); postImages.add(pi);
+
+        for (MultipartFile file : originalImages) {
+            // compress (and resize if needed)
+            byte[] compressedBytes = compressImage(file, quality);
+
+            // upload the compressed version
+            String originalName = file.getOriginalFilename() != null ? file.getOriginalFilename() : "image.jpg";
+            String fileName = UUID.randomUUID().toString() + "_" + originalName;
+
+            String imageUrl = fileUploadService.uploadBytes(compressedBytes, fileName);
+
+            PostImage pi = new PostImage();
+            pi.setImageUrl(imageUrl);
+            postImages.add(pi);
         }
 
         Post savedPost = createPostCore(requestImages.getDescription(), requestImages.getCreatedAt(), postImages, requestImages.getTags(), user);
@@ -315,5 +351,65 @@ public class PostService {
         summary.setHasSaved(hasSaved);
         summary.setFollowingAuthor(followingAuthor);
         return summary;
+    }
+
+    //  image compression/resize
+    private byte[] compressImage(MultipartFile file, float quality) throws IOException {
+        BufferedImage original = ImageIO.read(file.getInputStream());
+        if (original == null) {
+            throw new IOException("Invalid image file");
+        }
+
+        // Resize while keeping aspect ratio
+        BufferedImage resized = resizeImage(original, MAX_IMAGE_WIDTH, MAX_IMAGE_HEIGHT);
+
+        // Write with JPEG compression (best size/quality ratio for social posts)
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageWriter writer = ImageIO.getImageWritersByFormatName("jpg").next();
+        ImageWriteParam param = writer.getDefaultWriteParam();
+
+        if (param.canWriteCompressed()) {
+            param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+            param.setCompressionQuality(quality);
+        }
+
+        writer.setOutput(ImageIO.createImageOutputStream(baos));
+        writer.write(null, new IIOImage(resized, null, null), param);
+        writer.dispose();
+
+        byte[] result = baos.toByteArray();
+
+        // Safety: never let any single image go under minimum size (rare, but possible with tiny originals)
+        if (result.length < MIN_IMAGE_SIZE_BYTES) {
+            // fallback: re-compress with higher quality if too small
+            param.setCompressionQuality(0.92f);
+            baos.reset();
+            writer = ImageIO.getImageWritersByFormatName("jpg").next();
+            writer.setOutput(ImageIO.createImageOutputStream(baos));
+            writer.write(null, new IIOImage(resized, null, null), param);
+            writer.dispose();
+            result = baos.toByteArray();
+        }
+
+        return result;
+    }
+
+    private BufferedImage resizeImage(BufferedImage original, int maxWidth, int maxHeight) {
+        int originalWidth = original.getWidth();
+        int originalHeight = original.getHeight();
+
+        double ratio = Math.min((double) maxWidth / originalWidth, (double) maxHeight / originalHeight);
+        if (ratio >= 1.0) return original; // no need to resize
+
+        int newWidth = (int) (originalWidth * ratio);
+        int newHeight = (int) (originalHeight * ratio);
+
+        BufferedImage resized = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = resized.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(original, 0, 0, newWidth, newHeight, null);
+        g.dispose();
+
+        return resized;
     }
 }
