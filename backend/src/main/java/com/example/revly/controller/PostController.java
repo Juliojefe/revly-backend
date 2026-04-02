@@ -26,6 +26,8 @@ import java.util.Set;
 @RequestMapping("/api/post")
 public class PostController {
 
+    int MAX_IMGS = 5;   //  posts can have no more than five images
+
     @Autowired
     private PostService postService;
 
@@ -102,6 +104,9 @@ public class PostController {
     @PostMapping("/create/urls")
     public ResponseEntity<CreatePostConfirmation> createPost(@RequestBody CreatePostRequestUrl request, Principal principal) {
         User user = getUserFromPrincipalOrThrow(principal);
+        if (request.getImages().size() > MAX_IMGS) {
+            return ResponseEntity.ok(new CreatePostConfirmation(false, "too many images select fewer"));
+        }
         return ResponseEntity.ok(postService.createPost(request, user.getUserId()));
     }
 
@@ -115,7 +120,9 @@ public class PostController {
     ) throws IOException {
         List<MultipartFile> imageList = images != null ? images : new ArrayList<>();
         List<String> tagList = tags != null ? tags : new ArrayList<>();
-
+        if (imageList.size() > MAX_IMGS) {
+            return ResponseEntity.ok(new CreatePostConfirmation(false, "too many images select fewer"));
+        }
         CreatePostRequestImages request = new CreatePostRequestImages(description, Instant.parse(createdAt), imageList, tagList);
         User user = getUserFromPrincipalOrThrow(principal);
         return ResponseEntity.ok(postService.createPost(request, user.getUserId()));
