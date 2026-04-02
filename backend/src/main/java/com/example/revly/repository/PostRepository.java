@@ -35,7 +35,7 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     @Query("SELECT p.postId FROM Post p JOIN p.savers s WHERE s.userId = :userId AND p.postId IN :postIds")
     List<Integer> findSavedPostIdsForUser(@Param("postIds") List<Integer> postIds, @Param("userId") Integer userId);
 
-    //  semantic search cosine distance
+    // semantic search cosine distance
     @Query(value = """
         SELECT p.post_id 
         FROM post p 
@@ -46,12 +46,12 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
             nativeQuery = true)
     Page<Integer> findPostIdsBySemanticSimilarity(@Param("embedding") float[] embedding, Pageable pageable);
 
-    // Tag search (pure JPQL)
+    // Tag search – exact single tag (newest first)
     @Query("SELECT p.postId FROM Post p JOIN p.tags t WHERE LOWER(t.tagName) = LOWER(:tagName) " +
             "ORDER BY p.createdAt DESC, p.postId DESC")
     Page<Integer> findPostIdsByTag(@Param("tagName") String tagName, Pageable pageable);
 
-    // multi-tag search
+    // multi-tag support kept for future flexibility (not currently in use)
     @Query("""
     SELECT p.postId 
     FROM Post p 
@@ -62,32 +62,4 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
     ORDER BY p.createdAt DESC, p.postId DESC
     """)
     Page<Integer> findPostIdsByAnyTag(@Param("tagNames") Set<String> tagNames, Pageable pageable);
-
-    // Hybrid search – semantic similarity + any of the provided tags
-    @Query(value = """
-    SELECT p.post_id 
-    FROM post p 
-    WHERE EXISTS (
-        SELECT 1 FROM post_tag pt 
-        JOIN tag t ON pt.tag_id = t.tag_id 
-        WHERE pt.post_id = p.post_id 
-          AND t.tag_name IN (:tagNames)
-    )
-      AND p.description_embedding IS NOT NULL
-    ORDER BY p.description_embedding <=> CAST(:embedding AS vector)
-    """,
-            countQuery = """
-    SELECT COUNT(*) FROM post p 
-    WHERE EXISTS (
-        SELECT 1 FROM post_tag pt 
-        JOIN tag t ON pt.tag_id = t.tag_id 
-        WHERE pt.post_id = p.post_id 
-          AND t.tag_name IN (:tagNames)
-    )
-      AND p.description_embedding IS NOT NULL
-    """,
-            nativeQuery = true)
-    Page<Integer> findPostIdsByHybridAnyTags(@Param("embedding") float[] embedding,
-                                             @Param("tagNames") Set<String> tagNames,
-                                             Pageable pageable);
 }
