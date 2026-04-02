@@ -6,6 +6,7 @@ import com.example.revly.model.Post;
 import com.example.revly.model.PostImage;
 import com.example.revly.model.User;
 import com.example.revly.repository.PostRepository;
+import com.example.revly.repository.TagRepository;
 import com.example.revly.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -19,14 +20,11 @@ import java.util.stream.Collectors;
 @Service
 public class SearchService {
 
-    @Autowired
-    private PostRepository postRepository;
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private TextEmbeddingService textEmbeddingService;
-    @Autowired
-    private TagNormalizationService tagNormalizationService;
+    @Autowired private PostRepository postRepository;
+    @Autowired private UserRepository userRepository;
+    @Autowired private TagRepository tagRepository;
+    @Autowired private TextEmbeddingService textEmbeddingService;
+    @Autowired private TagNormalizationService tagNormalizationService;
 
     public Page<PostSummary> searchPostsByText(String query, Pageable pageable, User currentUser) {
         if (query == null || query.trim().isEmpty()) {
@@ -41,25 +39,20 @@ public class SearchService {
         if (tagInput == null || tagInput.trim().isEmpty()) {
             return Page.empty(pageable);
         }
-        Set<String> normalizedTags = normalizeTags(tagInput);
-        if (normalizedTags.isEmpty()) {
+        Set<String> normalized = normalizeTags(tagInput);
+        if (normalized.isEmpty()) {
             return Page.empty(pageable);
         }
-        Page<Integer> postIdsPage = postRepository.findPostIdsByAnyTag(normalizedTags, pageable);
+        String singleTag = normalized.iterator().next(); // guaranteed one element
+        Page<Integer> postIdsPage = postRepository.findPostIdsByTag(singleTag, pageable);
         return buildPostSummaryPageFromIds(postIdsPage, pageable, currentUser);
     }
-
-    public Page<PostSummary> searchPostsHybrid(String query, String tagInput, Pageable pageable, User currentUser) {
-        if (query == null || query.trim().isEmpty() || tagInput == null || tagInput.trim().isEmpty()) {
+    public Page<String> searchSimilarTags(String query, Pageable pageable) {
+        if (query == null || query.trim().isEmpty()) {
             return Page.empty(pageable);
         }
-        float[] embedding = toFloatArray(textEmbeddingService.embed(query.trim()));
-        Set<String> normalizedTags = normalizeTags(tagInput);
-        if (normalizedTags.isEmpty()) {
-            return Page.empty(pageable);
-        }
-        Page<Integer> postIdsPage = postRepository.findPostIdsByHybridAnyTags(embedding, normalizedTags, pageable);
-        return buildPostSummaryPageFromIds(postIdsPage, pageable, currentUser);
+        String cleanQuery = query.trim().replaceFirst("^#", "");
+        return tagRepository.findSimilarTagNames(cleanQuery, pageable);
     }
 
     public Page<UserSearchResult> searchUsers(String query, boolean mechanicOnly, Pageable pageable, User currentUser) {
@@ -83,7 +76,7 @@ public class SearchService {
     }
 
     private Set<String> normalizeTags(String input) {
-        List<String> rawTags = Arrays.asList(input.trim().split("\\s+"));
+        List<String> rawTags = List.of(input.trim()); // single tag only
         return tagNormalizationService.normalizeTags(rawTags);
     }
 
@@ -178,7 +171,6 @@ public class SearchService {
                 .toList();
         Map<Integer, Long> likeCounts = loadLikeCounts(postIds);
 
-        // authenticated user
         Set<Integer> likedSet = currentUser != null
                 ? loadLikedIds(postIds, currentUser.getUserId())
                 : Set.of();
@@ -198,7 +190,8 @@ public class SearchService {
             boolean hasSaved = savedSet.contains(post.getPostId());
             long likeCount = likeCounts.getOrDefault(post.getPostId(), 0L);
 
-            return toPostSummaryDto(post, hasLiked, hasSaved, followingAuthor, likeCount); }).collect(Collectors.toList());
+            return toPostSummaryDto(post, hasLiked, hasSaved, followingAuthor, likeCount);
+        }).collect(Collectors.toList());
 
         return new PageImpl<>(summaries, pageable, postIdsPage.getTotalElements());
     }

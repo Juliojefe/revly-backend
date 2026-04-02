@@ -34,8 +34,20 @@ public class SearchController {
         return ResponseEntity.ok(searchService.searchPostsByText(query, pageable, user));
     }
 
+    // accepts "mechanic" or "#mechanic" – returns matching tags like ["mechanic", "mechanics", "auto-mechanic"]
+    @GetMapping("/tags")
+    public ResponseEntity<Page<String>> searchSimilarTags(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("tagName").ascending());
+        return ResponseEntity.ok(searchService.searchSimilarTags(query, pageable));
+    }
+
+    // this is the endpoint the frontend calls after the user picks a tag from /tags
     @GetMapping("/posts/tag")
-    public ResponseEntity<Page<PostSummary>> searchByTag(
+    public ResponseEntity<Page<PostSummary>> searchPostsByTag(
             @RequestParam String tag,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -46,19 +58,6 @@ public class SearchController {
         return ResponseEntity.ok(searchService.searchPostsByTag(tag, pageable, user));
     }
 
-    @GetMapping("/posts/hybrid")
-    public ResponseEntity<Page<PostSummary>> searchHybrid(
-            @RequestParam String query,
-            @RequestParam String tag,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            Principal principal) {
-
-        User user = getUserOrNull(principal);
-        Pageable pageable = PageRequest.of(page, size); // similarity order
-        return ResponseEntity.ok(searchService.searchPostsHybrid(query, tag, pageable, user));
-    }
-
     @GetMapping("/users")
     public ResponseEntity<Page<UserSearchResult>> searchUsers(
             @RequestParam String query,
@@ -66,8 +65,7 @@ public class SearchController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             Principal principal) {
-        User currentUser = principal != null
-                ? userRepository.findByEmail(principal.getName()).orElse(null) : null;
+        User currentUser = getUserOrNull(principal);
         Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
         return ResponseEntity.ok(searchService.searchUsers(query, mechanicOnly, pageable, currentUser));
     }
