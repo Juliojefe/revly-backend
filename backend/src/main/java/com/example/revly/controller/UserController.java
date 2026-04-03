@@ -4,6 +4,7 @@ import com.example.revly.dto.request.*;
 import com.example.revly.dto.response.GetUserProfilePrivateResponse;
 import com.example.revly.dto.response.GetUserProfilePublicResponse;
 import com.example.revly.dto.response.UserNameAndPfp;
+import com.example.revly.exception.ForbiddenException;
 import com.example.revly.exception.ResourceNotFoundException;
 import com.example.revly.exception.UnauthorizedException;
 import com.example.revly.model.User;
@@ -37,7 +38,15 @@ public class UserController {
 
     //  private verbose response containing all user details
     @GetMapping("/{id}/profile/private")
-    public ResponseEntity<GetUserProfilePrivateResponse> getUserById(@PathVariable("id") int userId) {
+    public ResponseEntity<GetUserProfilePrivateResponse> getUserById(@PathVariable("id") int userId, Principal principal) {
+        User currentUser = getCurrentUser(principal);
+        boolean isOwner = currentUser.getUserId() == userId;
+        boolean isAdmin = currentUser.getUserRoles() != null && currentUser.getUserRoles().getIsAdmin();
+
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("You are not allowed to view this private profile");
+        }
+
         return ResponseEntity.ok(userService.getUserProfilePrivateById(userId));
     }
 
@@ -49,8 +58,9 @@ public class UserController {
 
     //  public profile access
     @GetMapping("/{id}/profile/public")
-    public ResponseEntity<GetUserProfilePublicResponse> getUserProfileById(@PathVariable("id") int userId) {
-        return ResponseEntity.ok(userService.getUserProfileById(userId));
+    public ResponseEntity<GetUserProfilePublicResponse> getUserProfileById(@PathVariable("id") int userId, Principal principal) {
+        User currentUser = getCurrentUser(principal);
+        return ResponseEntity.ok(userService.getUserProfileById(userId, currentUser.getUserId()));
     }
 
     @GetMapping("/all-ids")
