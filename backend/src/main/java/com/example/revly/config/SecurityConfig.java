@@ -49,7 +49,6 @@ public class SecurityConfig {
             "/api/post/{id}",
             "/api/explore/guest",
             "/api/user/{id}/name-and-pfp",
-            "/api/user/{id}/profile/public",
             "/api/user/all-ids",
             "/api/comment/post/{postId}",
             "/ws-chat/**", // Permit WebSocket handshake (auth checked via JWT filter)

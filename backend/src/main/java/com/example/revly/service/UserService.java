@@ -70,13 +70,18 @@ public class UserService {
         }
     }
 
-    public GetUserProfilePublicResponse getUserProfileById(int userId) {
-        Optional<User> u = userRepository.findById(userId);
-        if (u.isPresent()) {
-            return new GetUserProfilePublicResponse(u.get());
-        } else {
-            throw new ResourceNotFoundException("User not found with id: " + userId);
-        }
+    public GetUserProfilePublicResponse getUserProfileById(int userId, int viewerUserId) {
+        User viewer = userRepository.findById(viewerUserId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + viewerUserId));
+        User target = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        boolean isOwner = viewerUserId == userId;
+        boolean isAdmin = viewer.getUserRoles() != null && viewer.getUserRoles().getIsAdmin();
+        boolean viewerFollowsUser = !isOwner && userRepository.isFollowingUser(viewerUserId, userId);
+        boolean canViewFullProfile = isOwner || isAdmin || viewerFollowsUser;
+
+        return new GetUserProfilePublicResponse(target, canViewFullProfile, viewerFollowsUser);
     }
 
     public Page<Integer> getAllUserIds(Pageable pageable) {
@@ -205,6 +210,36 @@ public class UserService {
         }
         User tempUser = user.get();
         tempUser.setBiography(request.getNewBio());
+        userRepository.save(tempUser);
+        return true;
+    }
+
+    public Boolean updateBusinessLocation(int userId, UpdateBusinessLocationRequest request) {
+        Optional<User> user = userRepository.findById(userId);
+        if (user.isEmpty()) {
+            throw new ResourceNotFoundException("User not found with id: " + userId);
+        }
+
+        User tempUser = user.get();
+        String nextAddress = request.getAddress() == null ? null : request.getAddress().trim();
+        Double nextLat = request.getLat();
+        Double nextLon = request.getLon();
+
+        boolean isClearing = nextAddress == null || nextAddress.isEmpty();
+
+        if (isClearing) {
+            tempUser.setBusinessAddress(null);
+            tempUser.setBusinessLat(null);
+            tempUser.setBusinessLon(null);
+        } else {
+            if (nextLat == null || nextLon == null) {
+                throw new BadRequestException("Business latitude and longitude are required when address is set");
+            }
+            tempUser.setBusinessAddress(nextAddress);
+            tempUser.setBusinessLat(nextLat);
+            tempUser.setBusinessLon(nextLon);
+        }
+
         userRepository.save(tempUser);
         return true;
     }

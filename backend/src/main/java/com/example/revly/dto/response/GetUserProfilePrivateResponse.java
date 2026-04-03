@@ -22,6 +22,9 @@ public class GetUserProfilePrivateResponse {
     private int followingCount;
     private String profilePicUrl;
     private String biography;
+    private String businessAddress;
+    private Double businessLat;
+    private Double businessLon;
 
 
     public GetUserProfilePrivateResponse() {
@@ -38,6 +41,9 @@ public class GetUserProfilePrivateResponse {
         this.followingCount = 0;
         this.profilePicUrl = "";
         this.biography = "";
+        this.businessAddress = null;
+        this.businessLat = null;
+        this.businessLon = null;
     }
 
     public GetUserProfilePrivateResponse(User u) {
@@ -54,6 +60,9 @@ public class GetUserProfilePrivateResponse {
         this.followingCount = followingIds.size();
         this.profilePicUrl = u.getProfilePic();
         this.biography = u.getBiography();
+        this.businessAddress = u.getBusinessAddress();
+        this.businessLat = u.getBusinessLat();
+        this.businessLon = u.getBusinessLon();
     }
 
     private Set<Integer> getChatIds(Set<Chat> chats) {
@@ -230,5 +239,29 @@ public class GetUserProfilePrivateResponse {
 
     public void setBiography(String biography) {
         this.biography = biography;
+    }
+
+    public String getBusinessAddress() {
+        return businessAddress;
+    }
+
+    public void setBusinessAddress(String businessAddress) {
+        this.businessAddress = businessAddress;
+    }
+
+    public Double getBusinessLat() {
+        return businessLat;
+    }
+
+    public void setBusinessLat(Double businessLat) {
+        this.businessLat = businessLat;
+    }
+
+    public Double getBusinessLon() {
+        return businessLon;
+    }
+
+    public void setBusinessLon(Double businessLon) {
+        this.businessLon = businessLon;
     }
 }

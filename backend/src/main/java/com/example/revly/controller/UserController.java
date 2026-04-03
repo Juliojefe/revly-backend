@@ -4,6 +4,11 @@ import com.example.revly.dto.request.*;
 import com.example.revly.dto.response.GetUserProfilePrivateResponse;
 import com.example.revly.dto.response.GetUserProfilePublicResponse;
 import com.example.revly.dto.response.UserNameAndPfp;
+import com.example.revly.exception.ForbiddenException;
+import com.example.revly.exception.ResourceNotFoundException;
+import com.example.revly.exception.UnauthorizedException;
+import com.example.revly.model.User;
+import com.example.revly.repository.UserRepository;
 import com.example.revly.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -13,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/user")
@@ -20,6 +26,9 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     //  private response containing all users (pageable)
     @GetMapping("/getAll")
@@ -29,7 +38,15 @@ public class UserController {
 
     //  private verbose response containing all user details
     @GetMapping("/{id}/profile/private")
-    public ResponseEntity<GetUserProfilePrivateResponse> getUserById(@PathVariable("id") int userId) {
+    public ResponseEntity<GetUserProfilePrivateResponse> getUserById(@PathVariable("id") int userId, Principal principal) {
+        User currentUser = getCurrentUser(principal);
+        boolean isOwner = currentUser.getUserId() == userId;
+        boolean isAdmin = currentUser.getUserRoles() != null && currentUser.getUserRoles().getIsAdmin();
+
+        if (!isOwner && !isAdmin) {
+            throw new ForbiddenException("You are not allowed to view this private profile");
+        }
+
         return ResponseEntity.ok(userService.getUserProfilePrivateById(userId));
     }
 
@@ -41,8 +58,9 @@ public class UserController {
 
     //  public profile access
     @GetMapping("/{id}/profile/public")
-    public ResponseEntity<GetUserProfilePublicResponse> getUserProfileById(@PathVariable("id") int userId) {
-        return ResponseEntity.ok(userService.getUserProfileById(userId));
+    public ResponseEntity<GetUserProfilePublicResponse> getUserProfileById(@PathVariable("id") int userId, Principal principal) {
+        User currentUser = getCurrentUser(principal);
+        return ResponseEntity.ok(userService.getUserProfileById(userId, currentUser.getUserId()));
     }
 
     @GetMapping("/all-ids")
@@ -104,10 +122,24 @@ public class UserController {
         return ResponseEntity.ok(userService.updateBio(request));
     }
 
+    @PatchMapping("/business-location")
+    public ResponseEntity<Boolean> updateBusinessLocation(@RequestBody UpdateBusinessLocationRequest request, Principal principal) {
+        User user = getCurrentUser(principal);
+        return ResponseEntity.ok(userService.updateBusinessLocation(user.getUserId(), request));
+    }
+
 
     @DeleteMapping("/delete-user/{id}")
     public ResponseEntity<Boolean> deleteUser(@RequestBody int requestUserId) {
         userService.deleteUser(requestUserId);
         return ResponseEntity.ok(true);
+    }
+
+    private User getCurrentUser(Principal principal) {
+        if (principal == null) {
+            throw new UnauthorizedException("User not authenticated");
+        }
+        return userRepository.findByEmail(principal.getName())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 }

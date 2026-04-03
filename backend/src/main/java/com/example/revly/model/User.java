@@ -36,6 +36,15 @@ public class User {
     @Column(name = "biography")
     private String biography;
 
+    @Column(name = "business_address")
+    private String businessAddress;
+
+    @Column(name = "business_lat")
+    private Double businessLat;
+
+    @Column(name = "business_lon")
+    private Double businessLon;
+
     @JsonIgnore
     @ManyToMany
     @JoinTable(
@@ -191,5 +200,29 @@ public class User {
 
     public void setBiography(String biography) {
         this.biography = biography;
+    }
+
+    public String getBusinessAddress() {
+        return businessAddress;
+    }
+
+    public void setBusinessAddress(String businessAddress) {
+        this.businessAddress = businessAddress;
+    }
+
+    public Double getBusinessLat() {
+        return businessLat;
+    }
+
+    public void setBusinessLat(Double businessLat) {
+        this.businessLat = businessLat;
+    }
+
+    public Double getBusinessLon() {
+        return businessLon;
+    }
+
+    public void setBusinessLon(Double businessLon) {
+        this.businessLon = businessLon;
     }
 }

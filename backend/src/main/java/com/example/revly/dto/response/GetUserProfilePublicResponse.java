@@ -19,6 +19,11 @@ public class GetUserProfilePublicResponse {
     private int followingCount;
     private String profilePicUrl;
     private String biography;
+    private String businessAddress;
+    private Double businessLat;
+    private Double businessLon;
+    private boolean viewerCanViewFullProfile;
+    private boolean viewerFollowsUser;
 
     public GetUserProfilePublicResponse() {
         this.name = "";
@@ -32,20 +37,38 @@ public class GetUserProfilePublicResponse {
         this.followingCount = 0;
         this.profilePicUrl = "";
         this.biography = "";
+        this.businessAddress = null;
+        this.businessLat = null;
+        this.businessLon = null;
+        this.viewerCanViewFullProfile = false;
+        this.viewerFollowsUser = false;
     }
 
     public GetUserProfilePublicResponse(User u) {
+        this(u, true, false);
+    }
+
+    public GetUserProfilePublicResponse(User u, boolean viewerCanViewFullProfile, boolean viewerFollowsUser) {
         this.name = u.getName();
         this.isMechanic = u.getUserRoles().getIsMechanic();
         this.isAdmin = u.getUserRoles().getIsAdmin();
-        this.followingIds = getUserIds(u.getFollowing());
-        this.followerIds = getUserIds(u.getFollowers());
-        this.likedPostIds = getPostIds(u.getLikedPosts());
-        this.ownedPostIds = getPostIds(u.getOwnedPosts());
+        this.followingIds = viewerCanViewFullProfile ? getUserIds(u.getFollowing()) : new HashSet<>();
+        this.followerIds = viewerCanViewFullProfile ? getUserIds(u.getFollowers()) : new HashSet<>();
+        this.likedPostIds = viewerCanViewFullProfile ? getPostIds(u.getLikedPosts()) : new HashSet<>();
+        this.ownedPostIds = viewerCanViewFullProfile ? getPostIds(u.getOwnedPosts()) : new HashSet<>();
         this.followerCount = followerIds.size();
         this.followingCount = followingIds.size();
+        if (!viewerCanViewFullProfile) {
+            this.followerCount = u.getFollowers().size();
+            this.followingCount = u.getFollowing().size();
+        }
         this.profilePicUrl = u.getProfilePic();
         this.biography = u.getBiography();
+        this.businessAddress = viewerCanViewFullProfile ? u.getBusinessAddress() : null;
+        this.businessLat = viewerCanViewFullProfile ? u.getBusinessLat() : null;
+        this.businessLon = viewerCanViewFullProfile ? u.getBusinessLon() : null;
+        this.viewerCanViewFullProfile = viewerCanViewFullProfile;
+        this.viewerFollowsUser = viewerFollowsUser;
     }
 
     private Set<Integer> getUserIds(Set<User> users) {
@@ -158,5 +181,45 @@ public class GetUserProfilePublicResponse {
 
     public void setBiography(String biography) {
         this.biography = biography;
+    }
+
+    public String getBusinessAddress() {
+        return businessAddress;
+    }
+
+    public void setBusinessAddress(String businessAddress) {
+        this.businessAddress = businessAddress;
+    }
+
+    public Double getBusinessLat() {
+        return businessLat;
+    }
+
+    public void setBusinessLat(Double businessLat) {
+        this.businessLat = businessLat;
+    }
+
+    public Double getBusinessLon() {
+        return businessLon;
+    }
+
+    public void setBusinessLon(Double businessLon) {
+        this.businessLon = businessLon;
+    }
+
+    public boolean isViewerCanViewFullProfile() {
+        return viewerCanViewFullProfile;
+    }
+
+    public void setViewerCanViewFullProfile(boolean viewerCanViewFullProfile) {
+        this.viewerCanViewFullProfile = viewerCanViewFullProfile;
+    }
+
+    public boolean isViewerFollowsUser() {
+        return viewerFollowsUser;
+    }
+
+    public void setViewerFollowsUser(boolean viewerFollowsUser) {
+        this.viewerFollowsUser = viewerFollowsUser;
     }
 }

@@ -17,6 +17,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
     @Query("SELECT followed.userId FROM User follower JOIN follower.following followed WHERE follower.userId = :userId AND followed.userId IN :authorIds")
     List<Integer> findFollowedAuthorIds(@Param("userId") Integer userId, @Param("authorIds") List<Integer> authorIds);
 
+    @Query("SELECT COUNT(followed) > 0 FROM User follower JOIN follower.following followed WHERE follower.userId = :viewerUserId AND followed.userId = :targetUserId")
+    boolean isFollowingUser(@Param("viewerUserId") Integer viewerUserId, @Param("targetUserId") Integer targetUserId);
+
     // Search users by name/email (partial match) + optional mechanic filter – paged
     @Query("SELECT u FROM User u " +
             "LEFT JOIN u.userRoles r " +
