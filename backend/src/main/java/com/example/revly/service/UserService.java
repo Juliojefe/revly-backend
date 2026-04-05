@@ -192,16 +192,12 @@ public class UserService {
         if (user.isEmpty()) {
             throw new ResourceNotFoundException("User not found with id: " + userId);
         }
-
         String url = fileUploadService.uploadFile(file);
-
         User tempUser = user.get();
         tempUser.setProfilePic(url);
         userRepository.save(tempUser);
-
         return url;
     }
-
 
     public Boolean updateBio(UpdateBioRequest request) {
         Optional<User> user = userRepository.findById(request.getUserId());
