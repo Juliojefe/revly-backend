@@ -1,5 +1,6 @@
 package com.example.revly.dto.response;
 
+import com.example.revly.model.Business;
 import com.example.revly.model.Post;
 import com.example.revly.model.User;
 import java.util.HashSet;
@@ -64,10 +65,10 @@ public class GetUserProfilePublicResponse {
         this.profilePicUrl = u.getProfilePic();
         this.biography = u.getBiography();
         if (viewerCanViewFullProfile) {
-            var biz = u.getBusinesses().stream().findFirst();
-            this.businessAddress = biz.map(com.example.revly.model.Business::getAddress).orElse(null);
-            this.businessLat = biz.map(com.example.revly.model.Business::getLat).orElse(null);
-            this.businessLon = biz.map(com.example.revly.model.Business::getLon).orElse(null);
+            Business biz = u.getBusinesses().stream().findFirst().orElse(null);
+            this.businessAddress = biz != null ? biz.getAddress() : null;
+            this.businessLat = biz != null ? biz.getLat() : null;
+            this.businessLon = biz != null ? biz.getLon() : null;
         } else {
             this.businessAddress = null;
             this.businessLat = null;
