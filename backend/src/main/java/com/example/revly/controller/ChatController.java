@@ -5,6 +5,7 @@ import com.example.revly.dto.response.ChatSummary;
 import com.example.revly.exception.ResourceNotFoundException;
 import com.example.revly.exception.UnauthorizedException;
 import com.example.revly.model.User;
+import com.example.revly.repository.ChatRepository;
 import com.example.revly.repository.UserRepository;
 import com.example.revly.service.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +21,12 @@ public class ChatController {
 
     @Autowired
     private ChatService chatService;
+
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ChatRepository chatRepository;
 
     private User getCurrentUser(Principal principal) {
         if (principal == null) throw new UnauthorizedException("User not authenticated");
@@ -50,11 +55,17 @@ public class ChatController {
         return ResponseEntity.ok(chats);
     }
 
-    // mark chat as read called when user opens the chat
     @PostMapping("/{chatId}/read")
     public ResponseEntity<Void> markChatAsRead(@PathVariable int chatId, Principal principal) {
         User currentUser = getCurrentUser(principal);
         chatService.markChatAsRead(chatId, currentUser);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/unread-count")
+    public ResponseEntity<Integer> getUnreadCount(Principal principal) {
+        User currentUser = getCurrentUser(principal);
+        Integer count = chatRepository.getTotalUnreadCountForUser(currentUser.getUserId());
+        return ResponseEntity.ok(count != null ? count : 0);
     }
 }
