@@ -9,7 +9,9 @@ import com.example.revly.exception.ConflictException;
 import com.example.revly.exception.ForbiddenException;
 import com.example.revly.exception.ResourceNotFoundException;
 import com.example.revly.exception.UnauthorizedException;
+import com.example.revly.model.Business;
 import com.example.revly.model.User;
+import com.example.revly.repository.BusinessRepository;
 import com.example.revly.repository.UserRepository;
 import com.example.revly.repository.UserRolesRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class UserService {
@@ -37,6 +36,9 @@ public class UserService {
 
     @Autowired
     private FileUploadService fileUploadService;
+
+    @Autowired
+    private BusinessRepository businessRepository;
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -211,35 +213,57 @@ public class UserService {
     }
 
     public Boolean updateBusinessLocation(int userId, UpdateBusinessLocationRequest request) {
-        Optional<User> user = userRepository.findById(userId);
-        if (user.isEmpty()) {
+        Optional<User> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
             throw new ResourceNotFoundException("User not found with id: " + userId);
         }
-
-        User tempUser = user.get();
-        String nextAddress = request.getAddress() == null ? null : request.getAddress().trim();
-        Double nextLat = request.getLat();
-        Double nextLon = request.getLon();
-
-        boolean isClearing = nextAddress == null || nextAddress.isEmpty();
-
-        if (isClearing) {
-            tempUser.setBusinessAddress(null);
-            tempUser.setBusinessLat(null);
-            tempUser.setBusinessLon(null);
-        } else {
-            if (nextLat == null || nextLon == null) {
-                throw new BadRequestException("Business latitude and longitude are required when address is set");
-            }
-            tempUser.setBusinessAddress(nextAddress);
-            tempUser.setBusinessLat(nextLat);
-            tempUser.setBusinessLon(nextLon);
+        User user = userOpt.get();
+        if (user.getUserRoles() == null || !Boolean.TRUE.equals(user.getUserRoles().getIsMechanic())) {
+            throw new ForbiddenException("Only mechanics can have business locations");
         }
-
-        userRepository.save(tempUser);
+        String address = request.getAddress() != null ? request.getAddress().trim() : null;
+        Double lat = request.getLat();
+        Double lon = request.getLon();
+        boolean isClearing = address == null || address.isEmpty();
+        if (isClearing) {
+            // Remove links from the owning side (Business)
+            for (Business business : new HashSet<>(user.getBusinesses())) {
+                business.getUsers().remove(user);
+                businessRepository.save(business);
+            }
+            user.getBusinesses().clear();
+            userRepository.save(user);
+            return true;
+        }
+        if (lat == null || lon == null) {
+            throw new BadRequestException("Business latitude and longitude are required when address is set");
+        }
+        // Reuse existing business or create new
+        Optional<Business> existing = businessRepository.findByAddressAndLatAndLon(address, lat, lon);
+        Business business = existing.orElseGet(() -> {
+            Business newBusiness = new Business();
+            newBusiness.setAddress(address);
+            newBusiness.setLat(lat);
+            newBusiness.setLon(lon);
+            return businessRepository.save(newBusiness);
+        });
+        // 1. If user already has exactly this business do nothing
+        if (user.getBusinesses().contains(business)) {
+            return true;
+        }
+        // 2. Otherwise replace
+        for (Business oldBusiness : new HashSet<>(user.getBusinesses())) {
+            oldBusiness.getUsers().remove(user);
+            businessRepository.save(oldBusiness);
+        }
+        user.getBusinesses().clear();
+        // 3. Add the new one
+        user.getBusinesses().add(business);
+        business.getUsers().add(user);
+        // Save the owning side so the join table is updated
+        businessRepository.save(business);
         return true;
     }
-
     public void deleteUser(int requestUserId) {
         Optional<User> user = userRepository.findById(requestUserId);
         if (user.isEmpty()) {
