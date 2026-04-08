@@ -8,8 +8,12 @@ import com.example.revly.model.User;
 import com.example.revly.repository.ChatRepository;
 import com.example.revly.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -37,20 +41,33 @@ public class ChatService {
         chat.getUsers().add(currentUser);
 
         for (Integer id : userIds) {
-            if (id != null && !id.equals(currentUser.getUserId())) {  // prevent duplicate current user
+            if (id != null && !id.equals(currentUser.getUserId())) {
                 Optional<User> userOptional = userRepository.findById(id);
                 userOptional.ifPresent(chat.getUsers()::add);
             }
         }
-        // chats must have 2 or more users
+
         if (chat.getUsers().size() < 2) {
             throw new IllegalArgumentException("A chat must have at least 2 users");
         }
+
         chatRepository.save(chat);
         return new ChatSummary(chat);
     }
 
     public Set<ChatSummary> getChatsForUser(User user) {
         return user.getChats().stream().map(ChatSummary::new).collect(Collectors.toSet());
+    }
+
+    // paginated list for your notification panel sorted by most recent message
+    public Page<ChatSummary> getUserChatList(User user, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return chatRepository.findChatsByUserOrderByLastActivityDesc(user, pageable)
+                .map(chat -> new ChatSummary(chat));
+    }
+
+    // mark chat as read, called when user opens the chat
+    public void markChatAsRead(int chatId, User user) {
+        chatRepository.markChatAsRead(chatId, user.getUserId());
     }
 }
