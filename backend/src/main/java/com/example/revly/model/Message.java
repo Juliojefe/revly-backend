@@ -1,7 +1,7 @@
 package com.example.revly.model;
 
 import jakarta.persistence.*;
-import java.security.Timestamp;
+import java.sql.Timestamp;
 
 @Entity
 @Table(name = "message")

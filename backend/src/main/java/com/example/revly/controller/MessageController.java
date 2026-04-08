@@ -24,15 +24,6 @@ public class MessageController {
 
     /**
      * Handles sending a message to a specific chat via HTTP.
-     * <p>
-     * This route is primarily for fallback or testing purposes. In most cases,
-     * messages should be sent through ChatWebSocketController's sendMessage
-     * which uses WebSocket communication and internally calls messageService.saveMessage().
-     *
-     * @param chatId    the ID of the chat to send the message to
-     * @param request   the message content and optional image URLs
-     * @param principal the authenticated user sending the message
-     * @return          an HTTP status code representing the result of the operation
      */
     @PostMapping("/{chatId}")
     public ResponseEntity<Void> sendMessage(@PathVariable int chatId, @RequestBody MessageRequest request, Principal principal) {
@@ -49,7 +40,8 @@ public class MessageController {
             @RequestParam(defaultValue = "20") int size,
             Principal principal) {
         principalCheck(principal);
-        return ResponseEntity.ok(messageService.getMessagesByChatId(chatId, page, size));
+        // Updated to pass email so service can do membership check
+        return ResponseEntity.ok(messageService.getMessagesByChatId(chatId, page, size, principal.getName()));
     }
 
     private void principalCheck(Principal principal) {

@@ -2,6 +2,7 @@ package com.example.revly.service;
 
 import com.example.revly.dto.response.ChatSummary;
 import com.example.revly.exception.ResourceNotFoundException;
+import com.example.revly.exception.UnauthorizedException;
 import com.example.revly.model.Chat;
 import com.example.revly.model.User;
 import com.example.revly.repository.ChatRepository;
@@ -25,7 +26,7 @@ public class ChatService {
     public ChatSummary getChatSummaryById(int chatId, User user) {
         Chat chat = chatRepository.findById(chatId).orElseThrow(() -> new ResourceNotFoundException("The chat you are looking for was not found"));
         if (!chat.getUsers().contains(user)) {
-            throw new ResourceNotFoundException("That user in not a member of the chat");
+            throw new UnauthorizedException("That user is not a member of the chat");
         }
         return new ChatSummary(chat);
     }
@@ -34,9 +35,16 @@ public class ChatService {
         Chat chat = new Chat();
         chat.setName(name);
         chat.getUsers().add(currentUser);
+
         for (Integer id : userIds) {
-            Optional<User> userOptional = userRepository.findById(id);
-            userOptional.ifPresent(chat.getUsers()::add);
+            if (id != null && !id.equals(currentUser.getUserId())) {  // prevent duplicate current user
+                Optional<User> userOptional = userRepository.findById(id);
+                userOptional.ifPresent(chat.getUsers()::add);
+            }
+        }
+        // chats must have 2 or more users
+        if (chat.getUsers().size() < 2) {
+            throw new IllegalArgumentException("A chat must have at least 2 users");
         }
         chatRepository.save(chat);
         return new ChatSummary(chat);
