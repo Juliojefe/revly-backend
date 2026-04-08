@@ -6,8 +6,6 @@ import com.example.revly.model.User;
 import java.util.HashSet;
 import java.util.Set;
 
-
-//  NOTE this entire file need redoing
 public class GetUserProfilePrivateResponse {
     private String name;
     private boolean isMechanic;
@@ -25,7 +23,6 @@ public class GetUserProfilePrivateResponse {
     private String businessAddress;
     private Double businessLat;
     private Double businessLon;
-
 
     public GetUserProfilePrivateResponse() {
         this.name = "";
@@ -60,9 +57,10 @@ public class GetUserProfilePrivateResponse {
         this.followingCount = followingIds.size();
         this.profilePicUrl = u.getProfilePic();
         this.biography = u.getBiography();
-        this.businessAddress = u.getBusinessAddress();
-        this.businessLat = u.getBusinessLat();
-        this.businessLon = u.getBusinessLon();
+        var biz = u.getBusinesses().stream().findFirst();
+        this.businessAddress = biz.map(com.example.revly.model.Business::getAddress).orElse(null);
+        this.businessLat = biz.map(com.example.revly.model.Business::getLat).orElse(null);
+        this.businessLon = biz.map(com.example.revly.model.Business::getLon).orElse(null);
     }
 
     private Set<Integer> getChatIds(Set<Chat> chats) {

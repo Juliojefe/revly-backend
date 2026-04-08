@@ -36,14 +36,9 @@ public class User {
     @Column(name = "biography")
     private String biography;
 
-    @Column(name = "business_address")
-    private String businessAddress;
-
-    @Column(name = "business_lat")
-    private Double businessLat;
-
-    @Column(name = "business_lon")
-    private Double businessLon;
+    @JsonIgnore
+    @ManyToMany(mappedBy = "users")
+    private Set<Business> businesses = new HashSet<>();
 
     @JsonIgnore
     @ManyToMany
@@ -94,22 +89,6 @@ public class User {
         return userId;
     }
 
-    public String getGoogleId() {
-        return googleId;
-    }
-
-    public void setGoogleId(String googleId) {
-        this.googleId = googleId;
-    }
-
-    public void setOwnedPosts(Set<Post> ownedPosts) {
-        this.ownedPosts = ownedPosts;
-    }
-
-    public Set<Post> getOwnedPosts() {
-        return ownedPosts;
-    }
-
     public void setUserId(Integer userId) {
         this.userId = userId;
     }
@@ -154,6 +133,30 @@ public class User {
         this.userRoles = userRoles;
     }
 
+    public String getGoogleId() {
+        return googleId;
+    }
+
+    public void setGoogleId(String googleId) {
+        this.googleId = googleId;
+    }
+
+    public String getBiography() {
+        return biography;
+    }
+
+    public void setBiography(String biography) {
+        this.biography = biography;
+    }
+
+    public Set<Business> getBusinesses() {
+        return businesses;
+    }
+
+    public void setBusinesses(Set<Business> businesses) {
+        this.businesses = businesses;
+    }
+
     public Set<Chat> getChats() {
         return chats;
     }
@@ -194,35 +197,11 @@ public class User {
         this.likedPosts = likedPosts;
     }
 
-    public String getBiography() {
-        return biography;
+    public Set<Post> getOwnedPosts() {
+        return ownedPosts;
     }
 
-    public void setBiography(String biography) {
-        this.biography = biography;
-    }
-
-    public String getBusinessAddress() {
-        return businessAddress;
-    }
-
-    public void setBusinessAddress(String businessAddress) {
-        this.businessAddress = businessAddress;
-    }
-
-    public Double getBusinessLat() {
-        return businessLat;
-    }
-
-    public void setBusinessLat(Double businessLat) {
-        this.businessLat = businessLat;
-    }
-
-    public Double getBusinessLon() {
-        return businessLon;
-    }
-
-    public void setBusinessLon(Double businessLon) {
-        this.businessLon = businessLon;
+    public void setOwnedPosts(Set<Post> ownedPosts) {
+        this.ownedPosts = ownedPosts;
     }
 }
