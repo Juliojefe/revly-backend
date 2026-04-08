@@ -1,8 +1,8 @@
 package com.example.revly.dto.response;
 
+import com.example.revly.model.Business;
 import com.example.revly.model.Post;
 import com.example.revly.model.User;
-
 import java.util.HashSet;
 import java.util.Set;
 
@@ -64,9 +64,17 @@ public class GetUserProfilePublicResponse {
         }
         this.profilePicUrl = u.getProfilePic();
         this.biography = u.getBiography();
-        this.businessAddress = viewerCanViewFullProfile ? u.getBusinessAddress() : null;
-        this.businessLat = viewerCanViewFullProfile ? u.getBusinessLat() : null;
-        this.businessLon = viewerCanViewFullProfile ? u.getBusinessLon() : null;
+        if (viewerCanViewFullProfile) {
+            Business biz = u.getBusinesses().stream().findFirst().orElse(null);
+            this.businessAddress = biz != null ? biz.getAddress() : null;
+            this.businessLat = biz != null ? biz.getLat() : null;
+            this.businessLon = biz != null ? biz.getLon() : null;
+        } else {
+            this.businessAddress = null;
+            this.businessLat = null;
+            this.businessLon = null;
+        }
+
         this.viewerCanViewFullProfile = viewerCanViewFullProfile;
         this.viewerFollowsUser = viewerFollowsUser;
     }

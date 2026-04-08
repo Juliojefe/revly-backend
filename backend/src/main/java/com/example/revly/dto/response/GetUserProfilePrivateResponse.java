@@ -1,13 +1,12 @@
 package com.example.revly.dto.response;
 
+import com.example.revly.model.Business;
 import com.example.revly.model.Chat;
 import com.example.revly.model.Post;
 import com.example.revly.model.User;
 import java.util.HashSet;
 import java.util.Set;
 
-
-//  NOTE this entire file need redoing
 public class GetUserProfilePrivateResponse {
     private String name;
     private boolean isMechanic;
@@ -25,7 +24,6 @@ public class GetUserProfilePrivateResponse {
     private String businessAddress;
     private Double businessLat;
     private Double businessLon;
-
 
     public GetUserProfilePrivateResponse() {
         this.name = "";
@@ -60,9 +58,10 @@ public class GetUserProfilePrivateResponse {
         this.followingCount = followingIds.size();
         this.profilePicUrl = u.getProfilePic();
         this.biography = u.getBiography();
-        this.businessAddress = u.getBusinessAddress();
-        this.businessLat = u.getBusinessLat();
-        this.businessLon = u.getBusinessLon();
+        Business biz = u.getBusinesses().stream().findFirst().orElse(null);
+        this.businessAddress = biz != null ? biz.getAddress() : null;
+        this.businessLat = biz != null ? biz.getLat() : null;
+        this.businessLon = biz != null ? biz.getLon() : null;
     }
 
     private Set<Integer> getChatIds(Set<Chat> chats) {
