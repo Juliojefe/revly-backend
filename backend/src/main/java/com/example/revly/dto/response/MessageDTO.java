@@ -1,9 +1,8 @@
 package com.example.revly.dto.response;
 
-import java.security.Timestamp;
+import java.sql.Timestamp;
 import java.util.List;
 
-// Response DTO (includes images)
 public class MessageDTO {
     private Integer messageId;
     private String content;

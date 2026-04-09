@@ -1,13 +1,8 @@
 package com.example.revly.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -21,6 +16,9 @@ public class Chat {
 
     @Column(name = "name", length = 50)
     private String name;
+
+    @Column(name = "last_activity")
+    private Timestamp lastActivity;
 
     @ManyToMany(mappedBy = "chats")
     @JsonIgnore
@@ -41,6 +39,14 @@ public class Chat {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public Timestamp getLastActivity() {
+        return lastActivity;
+    }
+
+    public void setLastActivity(Timestamp lastActivity) {
+        this.lastActivity = lastActivity;
     }
 
     public Set<User> getUsers() {
