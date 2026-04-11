@@ -20,6 +20,9 @@ public interface ChatRepository extends JpaRepository<Chat, Integer> {
     @Query("SELECT c FROM Chat c JOIN c.users u WHERE u = :user ORDER BY c.lastActivity DESC")
     Page<Chat> findChatsByUserOrderByLastActivityDesc(@Param("user") User user, Pageable pageable);
 
+    @Query(value = "SELECT COALESCE(unread_count, 0) FROM user_chat WHERE chat_id = :chatId AND user_id = :userId", nativeQuery = true)
+    int getUnreadCountForChatAndUser(@Param("chatId") int chatId, @Param("userId") int userId);
+
     // Update chat's last activity (called on every new message)
     @Modifying
     @Query("UPDATE Chat c SET c.lastActivity = :now WHERE c.chatId = :chatId")

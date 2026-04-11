@@ -62,18 +62,22 @@ public class ChatService {
         userRepository.save(currentUser);
         return new ChatSummary(savedChat);
     }
+
     public Set<ChatSummary> getChatsForUser(User user) {
         return user.getChats().stream().map(ChatSummary::new).collect(Collectors.toSet());
     }
 
-    // paginated list for your notification panel sorted by most recent message
+    // paginated list for your sidebar with unread counts
     public Page<ChatSummary> getUserChatList(User user, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return chatRepository.findChatsByUserOrderByLastActivityDesc(user, pageable)
-                .map(ChatSummary::new);
+        Page<Chat> chatsPage = chatRepository.findChatsByUserOrderByLastActivityDesc(user, pageable);
+        return chatsPage.map(chat -> {
+            int unread = chatRepository.getUnreadCountForChatAndUser(chat.getChatId(), user.getUserId());
+            return new ChatSummary(chat, unread);
+        });
     }
 
-    // mark chat as read, called when user opens the chat
+    // mark chat as read called when user opens the chat
     public void markChatAsRead(int chatId, User user) {
         chatRepository.markChatAsRead(chatId, user.getUserId());
     }
