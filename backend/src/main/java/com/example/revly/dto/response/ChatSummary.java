@@ -3,51 +3,54 @@ package com.example.revly.dto.response;
 import com.example.revly.model.Chat;
 import com.example.revly.model.User;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ChatSummary {
     private Integer chatId;
     private String name;
-    private Set<Integer> userIds;
+    private List<Participant> participants = new ArrayList<>();
 
-    public ChatSummary() {
-        this.chatId = -1;
-        this.name = "";
-        this.userIds = new HashSet<>();
-    }
+    public ChatSummary() {}
 
     public ChatSummary(Chat chat) {
         this.chatId = chat.getChatId();
-        this.name = chat.getName();
-        Set<Integer> userIds = new HashSet<>();
+        this.name = chat.getName() != null ? chat.getName() : "Chat";
+
         for (User u : chat.getUsers()) {
-            userIds.add(u.getUserId());
+            this.participants.add(new Participant(
+                    u.getUserId(),
+                    u.getName(),
+                    u.getProfilePic()
+            ));
         }
-        this.userIds = userIds;
     }
 
-    public Integer getChatId() {
-        return chatId;
-    }
+    // Getters / Setters
+    public Integer getChatId() { return chatId; }
+    public void setChatId(Integer chatId) { this.chatId = chatId; }
 
-    public void setChatId(Integer chatId) {
-        this.chatId = chatId;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public String getName() {
-        return name;
-    }
+    public List<Participant> getParticipants() { return participants; }
+    public void setParticipants(List<Participant> participants) { this.participants = participants; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    // inner class for each participant
+    public static class Participant {
+        private Integer userId;
+        private String name;
+        private String profilePic;
 
-    public Set<Integer> getUserIds() {
-        return userIds;
-    }
+        public Participant(Integer userId, String name, String profilePic) {
+            this.userId = userId;
+            this.name = name;
+            this.profilePic = profilePic;
+        }
 
-    public void setUserIds(Set<Integer> userIds) {
-        this.userIds = userIds;
+        // Getters
+        public Integer getUserId() { return userId; }
+        public String getName() { return name; }
+        public String getProfilePic() { return profilePic; }
     }
 }

@@ -14,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -36,25 +37,31 @@ public class ChatService {
     }
 
     public ChatSummary createChat(String name, User currentUser, Set<Integer> userIds) {
-        Chat chat = new Chat();
-        chat.setName(name);
-        chat.getUsers().add(currentUser);
-
+        if (userIds == null || userIds.isEmpty()) {
+            throw new IllegalArgumentException("A chat must have at least 2 users");
+        }
+        Set<User> validUsers = new HashSet<>();
+        validUsers.add(currentUser);
         for (Integer id : userIds) {
             if (id != null && !id.equals(currentUser.getUserId())) {
                 Optional<User> userOptional = userRepository.findById(id);
-                userOptional.ifPresent(chat.getUsers()::add);
+                userOptional.ifPresent(validUsers::add);
             }
         }
-
-        if (chat.getUsers().size() < 2) {
-            throw new IllegalArgumentException("A chat must have at least 2 users");
+        if (validUsers.size() < 2) {
+            throw new IllegalArgumentException("A chat must have at least 2 valid users");
         }
-
-        chatRepository.save(chat);
-        return new ChatSummary(chat);
+        Chat chat = new Chat();
+        chat.setName(name != null && !name.trim().isEmpty() ? name.trim() : null);
+        chat.setLastActivity(new Timestamp(System.currentTimeMillis()));
+        for (User u : validUsers) {
+            chat.getUsers().add(u);
+            u.getChats().add(chat);
+        }
+        Chat savedChat = chatRepository.save(chat);
+        userRepository.save(currentUser);
+        return new ChatSummary(savedChat);
     }
-
     public Set<ChatSummary> getChatsForUser(User user) {
         return user.getChats().stream().map(ChatSummary::new).collect(Collectors.toSet());
     }
@@ -63,7 +70,7 @@ public class ChatService {
     public Page<ChatSummary> getUserChatList(User user, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return chatRepository.findChatsByUserOrderByLastActivityDesc(user, pageable)
-                .map(chat -> new ChatSummary(chat));
+                .map(ChatSummary::new);
     }
 
     // mark chat as read, called when user opens the chat

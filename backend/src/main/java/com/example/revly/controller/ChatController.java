@@ -49,7 +49,7 @@ public class ChatController {
     public ResponseEntity<Page<ChatSummary>> getUserChats(
             Principal principal,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "10") int size) {
         User currentUser = getCurrentUser(principal);
         Page<ChatSummary> chats = chatService.getUserChatList(currentUser, page, size);
         return ResponseEntity.ok(chats);
