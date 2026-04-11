@@ -33,13 +33,12 @@ public class ChatWebSocketController {
             return;
         }
         try {
-            MessageDTO message = messageService.saveMessage(
+            messageService.saveMessage(
                     chatId,
                     request.getContent(),
                     principal.getName(),
                     request.getImageUrls()
             );
-            messagingTemplate.convertAndSend("/topic/chat/" + chatId, message);
         } catch (UnauthorizedException e) {
             sendError(principal, "Access denied: " + e.getMessage());
         } catch (Exception e) {

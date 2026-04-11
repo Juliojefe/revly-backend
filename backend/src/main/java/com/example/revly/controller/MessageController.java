@@ -29,7 +29,6 @@ public class MessageController {
     public ResponseEntity<Void> sendMessage(@PathVariable int chatId, @RequestBody MessageRequest request, Principal principal) {
         principalCheck(principal);
         MessageDTO savedMessage = messageService.saveMessage(chatId, request.getContent(), principal.getName(), request.getImageUrls());
-        messagingTemplate.convertAndSend("/topic/chat/" + chatId, savedMessage);
         return ResponseEntity.ok().build();
     }
 
