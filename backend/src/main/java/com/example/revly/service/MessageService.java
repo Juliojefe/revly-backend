@@ -3,6 +3,7 @@ package com.example.revly.service;
 import com.example.revly.dto.response.MessageDTO;
 import com.example.revly.exception.ResourceNotFoundException;
 import com.example.revly.exception.UnauthorizedException;
+import org.springframework.transaction.annotation.Transactional;
 import com.example.revly.model.Chat;
 import com.example.revly.model.Message;
 import com.example.revly.model.MessageImage;
@@ -39,6 +40,7 @@ public class MessageService {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
+    @Transactional
     public MessageDTO saveMessage(int chatId, String content, String email, List<String> imageUrls) {
         User sender = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         Chat chat = chatRepository.findById(chatId).orElseThrow(() -> new ResourceNotFoundException("Chat was not found"));
