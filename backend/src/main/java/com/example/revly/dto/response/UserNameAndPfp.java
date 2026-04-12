@@ -1,4 +1,3 @@
-//	this is a comment
 package com.example.revly.dto.response;
 
 import com.example.revly.model.User;

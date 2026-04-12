@@ -3,6 +3,7 @@ package com.example.revly.service;
 import com.example.revly.dto.response.MessageDTO;
 import com.example.revly.exception.ResourceNotFoundException;
 import com.example.revly.exception.UnauthorizedException;
+import org.springframework.transaction.annotation.Transactional;
 import com.example.revly.model.Chat;
 import com.example.revly.model.Message;
 import com.example.revly.model.MessageImage;
@@ -39,6 +40,7 @@ public class MessageService {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
+    @Transactional
     public MessageDTO saveMessage(int chatId, String content, String email, List<String> imageUrls) {
         User sender = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         Chat chat = chatRepository.findById(chatId).orElseThrow(() -> new ResourceNotFoundException("Chat was not found"));
@@ -46,20 +48,20 @@ public class MessageService {
         if (!chat.getUsers().contains(sender)) {
             throw new UnauthorizedException("You are not a member of this chat");
         }
-
-        if (content == null || content.trim().isEmpty()) {
-            throw new IllegalArgumentException("Message content cannot be empty");
+        boolean hasText = content != null && !content.trim().isEmpty();
+        boolean hasImages = imageUrls != null && !imageUrls.isEmpty();
+        if (!hasText && !hasImages) {
+            throw new IllegalArgumentException("Message cannot be empty. Must contain text or at least one image.");
         }
         if (imageUrls != null && imageUrls.size() > 3) {
             throw new IllegalArgumentException("Maximum 3 images allowed per message");
         }
-
         Message message = new Message();
-        message.setContent(content);
+        message.setContent(hasText ? content.trim() : null);  // store null if no text
         message.setUser(sender);
         message.setChat(chat);
+        message.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         Message saved = messageRepository.save(message);
-
         if (imageUrls != null && !imageUrls.isEmpty()) {
             for (String url : imageUrls) {
                 messageImageService.addImage(saved.getMessageId(), url);
@@ -71,7 +73,6 @@ public class MessageService {
         for (User member : chat.getUsers()) {
             if (!member.getUserId().equals(sender.getUserId())) {
                 chatRepository.incrementUnreadCount(chatId, member.getUserId());
-                // Push live total unread count to this user
                 pushUnreadCountToUser(member.getEmail());
             }
         }
@@ -84,9 +85,8 @@ public class MessageService {
     public List<MessageDTO> getMessagesByChatId(int chatId, int page, int size, String email) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         Chat chat = chatRepository.findById(chatId).orElseThrow(() -> new ResourceNotFoundException("The chat you are looking for was not found"));
-        // only members of the chat can read messages
         if (!chat.getUsers().contains(user)) {
-            throw new UnauthorizedException("You are not a member of this chat");
+            throw new UnauthorizedException("You are not a member of the chat");
         }
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return messageRepository.findByChatChatId(chatId, pageable)
@@ -100,9 +100,8 @@ public class MessageService {
         dto.setMessageId(message.getMessageId());
         dto.setContent(message.getContent());
         dto.setUserId(message.getUser().getUserId());
-        dto.setChatId(message.getChat().getChatId());
+        dto.setSenderName(message.getUser().getName());
         dto.setCreatedAt(message.getCreatedAt());
-        // Fetch images
         dto.setImageUrls(messageImageService.getImagesByMessageId(message.getMessageId()).stream()
                 .map(MessageImage::getImageUrl)
                 .collect(Collectors.toList()));
