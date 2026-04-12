@@ -7,9 +7,17 @@ public class MessageDTO {
     private Integer messageId;
     private String content;
     private Integer userId;
-    private Integer chatId;
+    private String senderName;
     private Timestamp createdAt;
     private List<String> imageUrls;
+
+    public String getSenderName() {
+        return senderName;
+    }
+
+    public void setSenderName(String senderName) {
+        this.senderName = senderName;
+    }
 
     public Integer getMessageId() {
         return messageId;
@@ -33,14 +41,6 @@ public class MessageDTO {
 
     public void setUserId(Integer userId) {
         this.userId = userId;
-    }
-
-    public Integer getChatId() {
-        return chatId;
-    }
-
-    public void setChatId(Integer chatId) {
-        this.chatId = chatId;
     }
 
     public Timestamp getCreatedAt() {

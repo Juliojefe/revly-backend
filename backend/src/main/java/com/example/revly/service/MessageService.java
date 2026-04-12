@@ -60,6 +60,7 @@ public class MessageService {
         message.setContent(content);
         message.setUser(sender);
         message.setChat(chat);
+        message.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         Message saved = messageRepository.save(message);
 
         if (imageUrls != null && !imageUrls.isEmpty()) {
@@ -102,7 +103,7 @@ public class MessageService {
         dto.setMessageId(message.getMessageId());
         dto.setContent(message.getContent());
         dto.setUserId(message.getUser().getUserId());
-        dto.setChatId(message.getChat().getChatId());
+        dto.setSenderName(message.getUser().getName());
         dto.setCreatedAt(message.getCreatedAt());
         // Fetch images
         dto.setImageUrls(messageImageService.getImagesByMessageId(message.getMessageId()).stream()
