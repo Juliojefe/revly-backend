@@ -2,6 +2,7 @@ package com.example.revly.controller;
 
 import com.example.revly.dto.request.ChatCreateRequest;
 import com.example.revly.dto.response.ChatSummary;
+import com.example.revly.dto.response.UserNameAndPfp;
 import com.example.revly.exception.ResourceNotFoundException;
 import com.example.revly.exception.UnauthorizedException;
 import com.example.revly.model.User;
@@ -14,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -67,5 +69,14 @@ public class ChatController {
         User currentUser = getCurrentUser(principal);
         Integer count = chatRepository.getTotalUnreadCountForUser(currentUser.getUserId());
         return ResponseEntity.ok(count != null ? count : 0);
+    }
+
+    @GetMapping("/{chatId}/participants")
+    public ResponseEntity<List<UserNameAndPfp>> getChatParticipants(
+            @PathVariable int chatId,
+            Principal principal) {
+
+        User currentUser = getCurrentUser(principal);
+        return ResponseEntity.ok(chatService.getChatParticipants(chatId, currentUser));
     }
 }

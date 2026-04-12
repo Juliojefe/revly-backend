@@ -1,6 +1,7 @@
 package com.example.revly.service;
 
 import com.example.revly.dto.response.ChatSummary;
+import com.example.revly.dto.response.UserNameAndPfp;
 import com.example.revly.exception.ResourceNotFoundException;
 import com.example.revly.exception.UnauthorizedException;
 import com.example.revly.model.Chat;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -80,5 +82,21 @@ public class ChatService {
     // mark chat as read called when user opens the chat
     public void markChatAsRead(int chatId, User user) {
         chatRepository.markChatAsRead(chatId, user.getUserId());
+    }
+
+    public List<UserNameAndPfp> getChatParticipants(int chatId, User currentUser) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new ResourceNotFoundException("The chat you are looking for was not found"));
+        if (!chat.getUsers().contains(currentUser)) {
+            throw new UnauthorizedException("That user is not a member of the chat");
+        }
+        return chat.getUsers().stream()
+                .map(user -> {
+                    UserNameAndPfp dto = new UserNameAndPfp();
+                    dto.setName(user.getName());
+                    dto.setProfilePic(user.getProfilePic());
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 }
