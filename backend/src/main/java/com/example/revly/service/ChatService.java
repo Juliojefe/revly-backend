@@ -4,6 +4,7 @@ import com.example.revly.dto.response.ChatSummary;
 import com.example.revly.dto.response.UserNameAndPfp;
 import com.example.revly.exception.ResourceNotFoundException;
 import com.example.revly.exception.UnauthorizedException;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import com.example.revly.model.Chat;
 import com.example.revly.model.User;
 import com.example.revly.repository.ChatRepository;
@@ -29,6 +30,9 @@ public class ChatService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     public ChatSummary getChatSummaryById(int chatId, User user) {
         Chat chat = chatRepository.findById(chatId).orElseThrow(() -> new ResourceNotFoundException("The chat you are looking for was not found"));
@@ -82,6 +86,7 @@ public class ChatService {
     // mark chat as read called when user opens the chat
     public void markChatAsRead(int chatId, User user) {
         chatRepository.markChatAsRead(chatId, user.getUserId());
+        broadcastUnreadCount(user);
     }
 
     public List<UserNameAndPfp> getChatParticipants(int chatId, User currentUser) {
@@ -98,5 +103,19 @@ public class ChatService {
                     return dto;
                 })
                 .collect(Collectors.toList());
+    }
+
+    public void broadcastUnreadCount(User user) {
+        if (user == null || user.getEmail() == null) return;
+        try {
+            int total = chatRepository.getTotalUnreadCountForUser(user.getUserId());
+            messagingTemplate.convertAndSendToUser(
+                    user.getEmail(),
+                    "/queue/unread-count",
+                    total
+            );
+        } catch (Exception e) {
+            System.err.println("Failed to broadcast unread count for user " + user.getEmail() + ": " + e.getMessage());
+        }
     }
 }
