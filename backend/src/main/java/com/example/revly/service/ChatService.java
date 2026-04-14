@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.util.HashSet;
@@ -117,5 +118,24 @@ public class ChatService {
         } catch (Exception e) {
             System.err.println("Failed to broadcast unread count for user " + user.getEmail() + ": " + e.getMessage());
         }
+    }
+
+    @Transactional
+    public void leaveChat(int chatId, User currentUser) {
+        Chat chat = chatRepository.findById(chatId)
+                .orElseThrow(() -> new ResourceNotFoundException("The chat you are looking for was not found"));
+
+        if (!chat.getUsers().contains(currentUser)) {
+            throw new UnauthorizedException("You are not a member of this chat");
+        }
+
+        // Remove the user from the chat (only the join table row is deleted)
+        chatRepository.removeUserFromChat(chatId, currentUser.getUserId());
+
+        // Keep the in-memory relationship in sync
+        chat.getUsers().remove(currentUser);
+        currentUser.getChats().remove(chat);
+
+        // IMPORTANT: Chat and all messages/images are left untouched
     }
 }
