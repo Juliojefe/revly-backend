@@ -164,7 +164,7 @@ public class ReportService {
         Report updated = reportRepository.save(report);
         return toMyReportDto(updated);
     }
-    
+
     private MyReportDto toMyReportDto(Report report) {
         MyReportDto dto = new MyReportDto();
         dto.setReportId(report.getReportId());
