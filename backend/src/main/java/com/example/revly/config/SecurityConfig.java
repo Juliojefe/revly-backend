@@ -46,8 +46,10 @@ public class SecurityConfig {
             "/api/user/{id}/name-and-pfp",
             "/api/user/all-ids",
             "/api/comment/post/{postId}",
-            "/ws-chat/**", // Permit WebSocket handshake (auth checked via JWT filter)
-            "/api/geocode/**"
+            "/ws-chat/**",
+            "/api/geocode/**",
+            "/api/review/mechanic/**",
+            "/api/review/*/responses"
     );
 
     @Autowired
