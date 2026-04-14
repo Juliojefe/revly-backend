@@ -79,4 +79,11 @@ public class ChatController {
         User currentUser = getCurrentUser(principal);
         return ResponseEntity.ok(chatService.getChatParticipants(chatId, currentUser));
     }
+
+    @PostMapping("/{chatId}/leave")
+    public ResponseEntity<Void> leaveChat(@PathVariable int chatId, Principal principal) {
+        User currentUser = getCurrentUser(principal);
+        chatService.leaveChat(chatId, currentUser);
+        return ResponseEntity.ok().build();
+    }
 }

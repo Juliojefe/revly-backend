@@ -40,4 +40,9 @@ public interface ChatRepository extends JpaRepository<Chat, Integer> {
 
     @Query(value = "SELECT COALESCE(unread_count, 0) FROM user_chat WHERE chat_id = :chatId AND user_id = :userId", nativeQuery = true)
     int getUnreadCountForChatAndUser(@Param("chatId") int chatId, @Param("userId") int userId);
+
+    @Modifying
+    @Transactional
+    @Query(value = "DELETE FROM user_chat WHERE chat_id = :chatId AND user_id = :userId", nativeQuery = true)
+    void removeUserFromChat(@Param("chatId") int chatId, @Param("userId") int userId);
 }
