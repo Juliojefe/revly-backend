@@ -3,6 +3,7 @@ package com.example.revly.controller;
 import com.example.revly.dto.request.CreateReportRequest;
 import com.example.revly.dto.response.MyReportDto;
 import com.example.revly.dto.response.ReportReasonDto;
+import com.example.revly.dto.response.report.*;
 import com.example.revly.exception.BadRequestException;
 import com.example.revly.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/report")
@@ -84,6 +86,76 @@ public class ReportController {
     @GetMapping("/reasons")
     public ResponseEntity<List<ReportReasonDto>> getAllReasons() {
         return ResponseEntity.ok(reportService.getAllReportReasons());
+    }
+
+    @GetMapping("/USER/{reportId}")
+    public ResponseEntity<UserReportSummary> getUserReport(
+            @PathVariable Integer reportId, Principal principal) {
+        ReportSummary summary = reportService.getSingleReport(reportId, principal);
+        if (!(summary instanceof UserReportSummary)) {
+            throw new BadRequestException("This report is not of type USER");
+        }
+        return ResponseEntity.ok((UserReportSummary) summary);
+    }
+
+    @GetMapping("/POST/{reportId}")
+    public ResponseEntity<PostReportSummary> getPostReport(
+            @PathVariable Integer reportId, Principal principal) {
+        ReportSummary summary = reportService.getSingleReport(reportId, principal);
+        if (!(summary instanceof PostReportSummary)) {
+            throw new BadRequestException("This report is not of type POST");
+        }
+        return ResponseEntity.ok((PostReportSummary) summary);
+    }
+
+    @GetMapping("/COMMENT/{reportId}")
+    public ResponseEntity<CommentReportSummary> getCommentReport(
+            @PathVariable Integer reportId, Principal principal) {
+        ReportSummary summary = reportService.getSingleReport(reportId, principal);
+        if (!(summary instanceof CommentReportSummary)) {
+            throw new BadRequestException("This report is not of type COMMENT");
+        }
+        return ResponseEntity.ok((CommentReportSummary) summary);
+    }
+
+    @GetMapping("/REVIEW/{reportId}")
+    public ResponseEntity<ReviewReportSummary> getReviewReport(
+            @PathVariable Integer reportId, Principal principal) {
+        ReportSummary summary = reportService.getSingleReport(reportId, principal);
+        if (!(summary instanceof ReviewReportSummary)) {
+            throw new BadRequestException("This report is not of type REVIEW");
+        }
+        return ResponseEntity.ok((ReviewReportSummary) summary);
+    }
+
+    @GetMapping("/REVIEW_RESPONSE/{reportId}")
+    public ResponseEntity<ReviewResponseReportSummary> getReviewResponseReport(
+            @PathVariable Integer reportId, Principal principal) {
+        ReportSummary summary = reportService.getSingleReport(reportId, principal);
+        if (!(summary instanceof ReviewResponseReportSummary)) {
+            throw new BadRequestException("This report is not of type REVIEW_RESPONSE");
+        }
+        return ResponseEntity.ok((ReviewResponseReportSummary) summary);
+    }
+
+    @GetMapping("/MESSAGE/{reportId}")
+    public ResponseEntity<MessageReportSummary> getMessageReport(
+            @PathVariable Integer reportId, Principal principal) {
+        ReportSummary summary = reportService.getSingleReport(reportId, principal);
+        if (!(summary instanceof MessageReportSummary)) {
+            throw new BadRequestException("This report is not of type MESSAGE");
+        }
+        return ResponseEntity.ok((MessageReportSummary) summary);
+    }
+
+    @GetMapping("/MESSAGE_IMAGE/{reportId}")
+    public ResponseEntity<MessageImageReportSummary> getMessageImageReport(
+            @PathVariable Integer reportId, Principal principal) {
+        ReportSummary summary = reportService.getSingleReport(reportId, principal);
+        if (!(summary instanceof MessageImageReportSummary)) {
+            throw new BadRequestException("This report is not of type MESSAGE_IMAGE");
+        }
+        return ResponseEntity.ok((MessageImageReportSummary) summary);
     }
 
     // ===================================================================
