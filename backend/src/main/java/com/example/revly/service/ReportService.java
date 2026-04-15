@@ -3,15 +3,12 @@ package com.example.revly.service;
 import com.example.revly.dto.request.CreateReportRequest;
 import com.example.revly.dto.response.MyReportDto;
 import com.example.revly.dto.response.ReportReasonDto;
+import com.example.revly.dto.response.report.*;
 import com.example.revly.exception.BadRequestException;
 import com.example.revly.exception.ResourceNotFoundException;
 import com.example.revly.exception.UnauthorizedException;
-import com.example.revly.model.Report;
-import com.example.revly.model.ReportReason;
-import com.example.revly.model.User;
-import com.example.revly.repository.ReportReasonRepository;
-import com.example.revly.repository.ReportRepository;
-import com.example.revly.repository.UserRepository;
+import com.example.revly.model.*;
+import com.example.revly.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +32,24 @@ public class ReportService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PostRepository postRepository;
+
+    @Autowired
+    private CommentRepository commentRepository;
+
+    @Autowired
+    private MessageImageRepository messageImageRepository;
+
+    @Autowired
+    private MessageRepository messageRepository;
+
+    @Autowired
+    private ReviewResponseRepository reviewResponseRepository;
+
+    @Autowired
+    private ReviewRepository reviewRepository;
 
     /**
      * Creates a new report.
@@ -181,6 +196,206 @@ public class ReportService {
                 .collect(Collectors.toList());
     }
 
+
+    @Transactional(readOnly = true)
+    public ReportSummary getSingleReport(Integer reportId, Principal principal) {
+        User admin = getUserFromPrincipalOrThrow(principal);
+        if (admin.getUserRoles() == null || !Boolean.TRUE.equals(admin.getUserRoles().getIsAdmin())) {
+            throw new UnauthorizedException("Only admins can view reports");
+        }
+
+        Report report = reportRepository.findById(reportId)
+                .orElseThrow(() -> new ResourceNotFoundException("Report not found"));
+
+        return mapReportToSpecificDto(report);
+    }
+
+    private ReportSummary mapReportToSpecificDto(Report report) {
+        return switch (report.getEntityType()) {
+            case "USER" -> mapToUserReportSummary(report);
+            case "POST" -> mapToPostReportSummary(report);
+            case "COMMENT" -> mapToCommentReportSummary(report);
+            case "REVIEW" -> mapToReviewReportSummary(report);
+            case "REVIEW_RESPONSE" -> mapToReviewResponseReportSummary(report);
+            case "MESSAGE" -> mapToMessageReportSummary(report);
+            case "MESSAGE_IMAGE" -> mapToMessageImageReportSummary(report);
+            default -> throw new BadRequestException("Unknown entity type: " + report.getEntityType());
+        };
+    }
+
+    private void copyCommonFields(Report report, ReportSummary dto) {
+        dto.setReportId(report.getReportId());
+        dto.setEntityType(report.getEntityType());
+        dto.setEntityId(report.getEntityId());
+        dto.setExplanation(report.getExplanation());
+        dto.setStatus(report.getStatus());
+        dto.setCreatedAt(report.getCreatedAt());
+        dto.setReviewedBy(report.getReviewedBy() != null ? report.getReviewedBy().getUserId() : null);
+        dto.setAdminExplanation(report.getAdminExplanation());
+        dto.setReviewedAt(report.getReviewedAt());
+
+        dto.setReasons(report.getReasons().stream()
+                .map(r -> {
+                    ReportReasonDto rd = new ReportReasonDto();
+                    rd.setCode(r.getCode());
+                    rd.setDescription(r.getDescription());
+                    return rd;
+                })
+                .collect(Collectors.toList()));
+
+        // Reporter info
+        User reporter = report.getReporter();
+        if (reporter != null) {
+            dto.setReporterId(reporter.getUserId());
+            dto.setReporterName(reporter.getName());
+            dto.setReporterEmail(reporter.getEmail());
+            dto.setReporterProfilePic(reporter.getProfilePic());
+        }
+    }
+
+    private UserReportSummary mapToUserReportSummary(Report report) {
+        UserReportSummary dto = new UserReportSummary();
+        copyCommonFields(report, dto);
+
+        User user = userRepository.findById(report.getEntityId()).orElse(null);
+        if (user != null) {
+            dto.setUserId(user.getUserId());
+            dto.setName(user.getName());
+            dto.setEmail(user.getEmail());
+            dto.setProfilePic(user.getProfilePic());
+        }
+        return dto;
+    }
+
+    private PostReportSummary mapToPostReportSummary(Report report) {
+        PostReportSummary dto = new PostReportSummary();
+        copyCommonFields(report, dto);
+
+        Post post = postRepository.findById(report.getEntityId()).orElse(null);
+        if (post != null) {
+            dto.setPostId(post.getPostId());
+            dto.setDescription(post.getDescription());
+            dto.setImageUrls(post.getImages().stream().map(PostImage::getImageUrl).toList());
+
+            User author = post.getUser();
+            if (author != null) {
+                dto.setAuthorId(author.getUserId());
+                dto.setAuthorName(author.getName());
+                dto.setAuthorEmail(author.getEmail());
+                dto.setAuthorProfilePic(author.getProfilePic());
+            }
+        }
+        return dto;
+    }
+
+    private CommentReportSummary mapToCommentReportSummary(Report report) {
+        CommentReportSummary dto = new CommentReportSummary();
+        copyCommonFields(report, dto);
+
+        Comment comment = commentRepository.findById(report.getEntityId()).orElse(null);
+        if (comment != null) {
+            dto.setCommentId(comment.getCommentId());
+            dto.setContent(comment.getContent());
+            dto.setImageUrls(comment.getImages().stream().map(CommentImage::getImageUrl).toList());
+
+            User author = comment.getUser();
+            if (author != null) {
+                dto.setAuthorId(author.getUserId());
+                dto.setAuthorName(author.getName());
+                dto.setAuthorEmail(author.getEmail());
+                dto.setAuthorProfilePic(author.getProfilePic());
+            }
+        }
+        return dto;
+    }
+
+    private ReviewReportSummary mapToReviewReportSummary(Report report) {
+        ReviewReportSummary dto = new ReviewReportSummary();
+        copyCommonFields(report, dto);
+
+        Review review = reviewRepository.findById(report.getEntityId()).orElse(null);
+        if (review != null) {
+            dto.setReviewId(review.getReviewId());
+            dto.setRating(review.getRating());
+            dto.setContent(review.getContent());
+            dto.setImageUrls(review.getImages().stream().map(ReviewImage::getImageUrl).toList());
+
+            User reviewer = review.getReviewer();
+            if (reviewer != null) {
+                dto.setReviewerId(reviewer.getUserId());
+                dto.setReviewerName(reviewer.getName());
+                dto.setReviewerEmail(reviewer.getEmail());
+                dto.setReviewerProfilePic(reviewer.getProfilePic());
+            }
+        }
+        return dto;
+    }
+
+    private ReviewResponseReportSummary mapToReviewResponseReportSummary(Report report) {
+        ReviewResponseReportSummary dto = new ReviewResponseReportSummary();
+        copyCommonFields(report, dto);
+
+        ReviewResponse response = reviewResponseRepository.findById(report.getEntityId()).orElse(null);
+        if (response != null) {
+            dto.setResponseId(response.getResponseId());
+            dto.setContent(response.getContent());
+            dto.setImageUrls(response.getImages().stream().map(ReviewResponseImage::getImageUrl).toList());
+
+            User author = response.getUser();
+            if (author != null) {
+                dto.setAuthorId(author.getUserId());
+                dto.setAuthorName(author.getName());
+                dto.setAuthorEmail(author.getEmail());
+                dto.setAuthorProfilePic(author.getProfilePic());
+            }
+        }
+        return dto;
+    }
+
+    private MessageReportSummary mapToMessageReportSummary(Report report) {
+        MessageReportSummary dto = new MessageReportSummary();
+        copyCommonFields(report, dto);
+
+        Message message = messageRepository.findById(report.getEntityId()).orElse(null);
+        if (message != null) {
+            dto.setMessageId(message.getMessageId());
+            dto.setContent(message.getContent());
+            dto.setImageUrls(message.getImages().stream().map(MessageImage::getImageUrl).toList());
+
+            User author = message.getUser();
+            if (author != null) {
+                dto.setAuthorId(author.getUserId());
+                dto.setAuthorName(author.getName());
+                dto.setAuthorEmail(author.getEmail());
+                dto.setAuthorProfilePic(author.getProfilePic());
+            }
+        }
+        return dto;
+    }
+
+    private MessageImageReportSummary mapToMessageImageReportSummary(Report report) {
+        MessageImageReportSummary dto = new MessageImageReportSummary();
+        copyCommonFields(report, dto);
+
+        MessageImage image = messageImageRepository.findById(report.getEntityId()).orElse(null);
+        if (image != null) {
+            dto.setMessageImageId(image.getId());
+            dto.setImageUrls(List.of(image.getImageUrl()));
+
+            Message message = image.getMessage();
+            if (message != null) {
+                User author = message.getUser();
+                if (author != null) {
+                    dto.setAuthorId(author.getUserId());
+                    dto.setAuthorName(author.getName());
+                    dto.setAuthorEmail(author.getEmail());
+                    dto.setAuthorProfilePic(author.getProfilePic());
+                }
+            }
+        }
+        return dto;
+    }
+
     private MyReportDto toMyReportDto(Report report) {
         MyReportDto dto = new MyReportDto();
         dto.setReportId(report.getReportId());
@@ -190,7 +405,6 @@ public class ReportService {
         dto.setStatus(report.getStatus());
         dto.setCreatedAt(report.getCreatedAt());
 
-        // Convert reasons (fixed generic type + stream)
         List<ReportReasonDto> reasonDtos = report.getReasons().stream()
                 .map(r -> {
                     ReportReasonDto rd = new ReportReasonDto();
@@ -201,7 +415,6 @@ public class ReportService {
                 .collect(Collectors.toList());
 
         dto.setReasons(reasonDtos);
-
         return dto;
     }
 
