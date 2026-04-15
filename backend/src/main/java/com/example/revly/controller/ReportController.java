@@ -2,6 +2,7 @@ package com.example.revly.controller;
 
 import com.example.revly.dto.request.CreateReportRequest;
 import com.example.revly.dto.response.MyReportDto;
+import com.example.revly.dto.response.ReportReasonDto;
 import com.example.revly.exception.BadRequestException;
 import com.example.revly.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 import java.util.Set;
 
 @RestController
@@ -73,6 +75,15 @@ public class ReportController {
         return ResponseEntity.ok(
                 reportService.reviewReport(reportId, request.getStatus(), request.getAdminExplanation(), principal)
         );
+    }
+
+    /**
+     * GET all predefined report reasons for the modal.
+     * Called when the ReportModal opens.
+     */
+    @GetMapping("/reasons")
+    public ResponseEntity<List<ReportReasonDto>> getAllReasons() {
+        return ResponseEntity.ok(reportService.getAllReportReasons());
     }
 
     // ===================================================================
