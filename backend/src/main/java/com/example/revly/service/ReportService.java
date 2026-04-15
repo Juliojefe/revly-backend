@@ -40,6 +40,12 @@ public class ReportService {
     private CommentRepository commentRepository;
 
     @Autowired
+    private ReviewResponseImageRepository reviewResponseImageRepository;
+
+    @Autowired
+    private CommentImageRepository commentImageRepository;
+
+    @Autowired
     private MessageImageRepository messageImageRepository;
 
     @Autowired
@@ -296,7 +302,9 @@ public class ReportService {
         if (comment != null) {
             dto.setCommentId(comment.getCommentId());
             dto.setContent(comment.getContent());
-            dto.setImageUrls(comment.getImages().stream().map(CommentImage::getImageUrl).toList());
+
+            List<CommentImage> images = commentImageRepository.findByComment(comment);
+            dto.setImageUrls(images.stream().map(CommentImage::getImageUrl).toList());
 
             User author = comment.getUser();
             if (author != null) {
@@ -308,7 +316,6 @@ public class ReportService {
         }
         return dto;
     }
-
     private ReviewReportSummary mapToReviewReportSummary(Report report) {
         ReviewReportSummary dto = new ReviewReportSummary();
         copyCommonFields(report, dto);
@@ -339,7 +346,9 @@ public class ReportService {
         if (response != null) {
             dto.setResponseId(response.getResponseId());
             dto.setContent(response.getContent());
-            dto.setImageUrls(response.getImages().stream().map(ReviewResponseImage::getImageUrl).toList());
+
+            List<ReviewResponseImage> images = reviewResponseImageRepository.findByResponse(response);
+            dto.setImageUrls(images.stream().map(ReviewResponseImage::getImageUrl).toList());
 
             User author = response.getUser();
             if (author != null) {
@@ -360,7 +369,9 @@ public class ReportService {
         if (message != null) {
             dto.setMessageId(message.getMessageId());
             dto.setContent(message.getContent());
-            dto.setImageUrls(message.getImages().stream().map(MessageImage::getImageUrl).toList());
+
+            List<MessageImage> images = messageImageRepository.findByMessageMessageId(message.getMessageId());
+            dto.setImageUrls(images.stream().map(MessageImage::getImageUrl).toList());
 
             User author = message.getUser();
             if (author != null) {
