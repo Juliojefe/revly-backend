@@ -165,6 +165,22 @@ public class ReportService {
         return toMyReportDto(updated);
     }
 
+    /**
+     * Returns ALL predefined report reasons (used by the frontend modal).
+     * No paging needed — there are only ~13 reasons.
+     */
+    @Transactional(readOnly = true)
+    public List<ReportReasonDto> getAllReportReasons() {
+        return reportReasonRepository.findAll().stream()
+                .map(r -> {
+                    ReportReasonDto dto = new ReportReasonDto();
+                    dto.setCode(r.getCode());
+                    dto.setDescription(r.getDescription());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
     private MyReportDto toMyReportDto(Report report) {
         MyReportDto dto = new MyReportDto();
         dto.setReportId(report.getReportId());
