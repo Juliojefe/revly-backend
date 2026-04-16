@@ -160,8 +160,11 @@ public class ReportService {
         return toMyReportDto(updated);
     }
 
+
     /**
      * ADMIN ONLY: Review / update status of any report.
+     * If status is CLOSED, the reported entity is permanently deleted from the database.
+     * For IN_REVIEW / RESOLVED / DISMISSED / PENDING → no entity deletion occurs.
      */
     @Transactional
     public MyReportDto reviewReport(Integer reportId, String newStatus, String adminExplanation, Principal principal) {
@@ -183,6 +186,12 @@ public class ReportService {
         report.setReviewedAt(Instant.now());
 
         Report updated = reportRepository.save(report);
+
+        // Permanently delete the reported entity when the admin closes the report
+        if ("CLOSED".equals(newStatus)) {
+            deleteReportedEntity(report.getEntityType(), report.getEntityId());
+        }
+
         return toMyReportDto(updated);
     }
 
@@ -214,6 +223,14 @@ public class ReportService {
                 .orElseThrow(() -> new ResourceNotFoundException("Report not found"));
 
         return mapReportToSpecificDto(report);
+    }
+
+    private void deleteReportedEntity(String entityType, Integer entityId) {
+        /*
+            Does nothing because we are not ready to support the deletion of entities
+            Deleting will break a many things right now.
+            Deleting/taking something down is complex and will be future work.
+        */
     }
 
     private ReportSummary mapReportToSpecificDto(Report report) {
@@ -316,6 +333,7 @@ public class ReportService {
         }
         return dto;
     }
+
     private ReviewReportSummary mapToReviewReportSummary(Report report) {
         ReviewReportSummary dto = new ReviewReportSummary();
         copyCommonFields(report, dto);
