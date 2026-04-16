@@ -52,16 +52,6 @@ public class UserService {
         return new PageImpl<>(responseList, pageable, userPage.getTotalElements());
     }
 
-    public GetUserProfilePrivateResponse getUserProfilePrivateById(int userId) {
-        Optional<User> OptUser = userRepository.findById(userId);
-        if (OptUser.isPresent()) {
-            User u = OptUser.get();
-            return new GetUserProfilePrivateResponse(u);
-        } else {
-            throw new ResourceNotFoundException("User not found with id: " + userId);
-        }
-    }
-
     public UserNameAndPfp getUserNameAndPfpById(int userId){
         Optional<User> OptUser = userRepository.findById(userId);
         if (OptUser.isPresent()) {
@@ -72,16 +62,20 @@ public class UserService {
         }
     }
 
-    public GetUserProfilePublicResponse getUserProfileById(int userId, int viewerUserId) {
+    public Object getUserProfileById(int userId, int viewerUserId) {
         User viewer = userRepository.findById(viewerUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + viewerUserId));
         User target = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         boolean isOwner = viewerUserId == userId;
+        if (isOwner) {
+            return new GetUserProfilePrivateResponse(target);
+        }
+
         boolean isAdmin = viewer.getUserRoles() != null && viewer.getUserRoles().getIsAdmin();
-        boolean viewerFollowsUser = !isOwner && userRepository.isFollowingUser(viewerUserId, userId);
-        boolean canViewFullProfile = isOwner || isAdmin || viewerFollowsUser;
+        boolean viewerFollowsUser = userRepository.isFollowingUser(viewerUserId, userId);
+        boolean canViewFullProfile = isAdmin || viewerFollowsUser;
 
         return new GetUserProfilePublicResponse(target, canViewFullProfile, viewerFollowsUser);
     }
