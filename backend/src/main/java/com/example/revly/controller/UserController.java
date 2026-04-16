@@ -43,10 +43,8 @@ public class UserController {
     @GetMapping("/{id}/profile")
     public ResponseEntity<?> getUserProfileById(@PathVariable("id") int userId, Principal principal) {
         User currentUser = getCurrentUserOrNull(principal);
-        if (currentUser == null) {
-            throw new UnauthorizedException("User not authenticated");
-        }
-        return ResponseEntity.ok(userService.getUserProfileById(userId, currentUser.getUserId()));
+        Integer viewerUserId = currentUser != null ? currentUser.getUserId() : null;
+        return ResponseEntity.ok(userService.getUserProfileById(userId, viewerUserId));
     }
 
     @GetMapping("/all-ids")

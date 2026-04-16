@@ -62,22 +62,17 @@ public class UserService {
         }
     }
 
-    public Object getUserProfileById(int userId, int viewerUserId) {
-        User viewer = userRepository.findById(viewerUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + viewerUserId));
+    public Object getUserProfileById(int userId, Integer viewerUserId) {
         User target = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        boolean isOwner = viewerUserId == userId;
+        boolean isOwner = viewerUserId != null && viewerUserId == userId;
         if (isOwner) {
             return new GetUserProfilePrivateResponse(target);
         }
 
-        boolean isAdmin = viewer.getUserRoles() != null && viewer.getUserRoles().getIsAdmin();
-        boolean viewerFollowsUser = userRepository.isFollowingUser(viewerUserId, userId);
-        boolean canViewFullProfile = isAdmin || viewerFollowsUser;
-
-        return new GetUserProfilePublicResponse(target, canViewFullProfile, viewerFollowsUser);
+        boolean viewerFollowsUser = viewerUserId != null && userRepository.isFollowingUser(viewerUserId, userId);
+        return new GetUserProfilePublicResponse(target, viewerFollowsUser);
     }
 
     public Page<Integer> getAllUserIds(Pageable pageable) {
