@@ -150,9 +150,18 @@ public class ReviewService {
 
     @Transactional(readOnly = true)
     public Page<ReviewResponseDTO> getReviewsByMechanic(Integer mechanicId, int page, int size, Integer currentUserId) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Pageable pageable = PageRequest.of(page, size);
 
-        Page<Review> allReviews = reviewRepository.findByMechanic_UserId(mechanicId, pageable);
+        Page<Review> allReviews;
+
+        if (currentUserId != null) {
+            allReviews = reviewRepository.findByMechanicWithUserPriority(mechanicId, currentUserId, pageable);
+        } else {
+            allReviews = reviewRepository.findByMechanic_UserId(
+                    mechanicId,
+                    PageRequest.of(page, size, Sort.by("createdAt").descending())
+            );
+        }
 
         return allReviews.map(review -> mapToReviewResponseDTO(review, currentUserId));
     }
