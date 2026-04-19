@@ -7,6 +7,10 @@ import com.example.revly.dto.response.report.*;
 import com.example.revly.exception.BadRequestException;
 import com.example.revly.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -158,10 +162,24 @@ public class ReportController {
         return ResponseEntity.ok((MessageImageReportSummary) summary);
     }
 
-    // ===================================================================
-    // Small request DTOs used only by this controller
-    // ===================================================================
+    /**
+     * ADMIN ONLY: Get paginated list of reports for a specific entity type.
+     * Used by the list view at /admin/reports/{entityType}
+     * Example: /api/report?entityType=POST&page=0&size=20
+     */
+    @GetMapping
+    public ResponseEntity<Page<ReportSummary>> getReportsByEntityType(
+            @RequestParam String entityType,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            Principal principal) {
 
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").ascending());
+        Page<ReportSummary> result = reportService.getReportsByEntityType(entityType, pageable, principal);
+        return ResponseEntity.ok(result);
+    }
+
+    // Small request DTOs used only by this controller
     /**
      * Simple DTO for updating a report (user side).
      */

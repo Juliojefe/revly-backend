@@ -9,6 +9,8 @@ import com.example.revly.exception.ResourceNotFoundException;
 import com.example.revly.exception.UnauthorizedException;
 import com.example.revly.model.*;
 import com.example.revly.repository.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -223,6 +225,24 @@ public class ReportService {
                 .orElseThrow(() -> new ResourceNotFoundException("Report not found"));
 
         return mapReportToSpecificDto(report);
+    }
+
+    /**
+     * Get paginated reports for a specific entity type.
+     * Oldest to newest (as you requested).
+     */
+    @Transactional(readOnly = true)
+    public Page<ReportSummary> getReportsByEntityType(
+            String entityType, Pageable pageable, Principal principal) {
+
+        User admin = getUserFromPrincipalOrThrow(principal);
+        if (admin.getUserRoles() == null || !Boolean.TRUE.equals(admin.getUserRoles().getIsAdmin())) {
+            throw new UnauthorizedException("Only admins can view reports");
+        }
+
+        Page<Report> reportsPage = reportRepository.findByEntityTypeOrderByCreatedAtAsc(entityType, pageable);
+
+        return reportsPage.map(this::mapReportToSpecificDto);
     }
 
     private void deleteReportedEntity(String entityType, Integer entityId) {
