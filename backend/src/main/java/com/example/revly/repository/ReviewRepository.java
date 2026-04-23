@@ -17,4 +17,18 @@ public interface ReviewRepository extends JpaRepository<Review, Integer> {
 
     @Query("SELECT AVG(r.rating), COUNT(r) FROM Review r WHERE r.mechanic.userId = :mechanicId")
     Object[] getAverageRatingAndCount(@Param("mechanicId") Integer mechanicId);
+
+    @Query("""
+    SELECT r FROM Review r
+    WHERE r.mechanic.userId = :mechanicId
+    ORDER BY 
+        CASE WHEN r.reviewer.userId = :currentUserId THEN 0 ELSE 1 END,
+        r.createdAt DESC
+""")
+    Page<Review> findByMechanicWithUserPriority(
+            @Param("mechanicId") Integer mechanicId,
+            @Param("currentUserId") Integer currentUserId,
+            Pageable pageable
+    );
+
 }

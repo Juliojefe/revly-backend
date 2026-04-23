@@ -10,6 +10,8 @@ import com.example.revly.exception.UnauthorizedException;
 import com.example.revly.model.*;
 import com.example.revly.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,38 +42,44 @@ public class ReportService {
     private CommentRepository commentRepository;
 
     @Autowired
-    private ReviewResponseImageRepository reviewResponseImageRepository;
-
-    @Autowired
-    private CommentImageRepository commentImageRepository;
-
-    @Autowired
-    private MessageImageRepository messageImageRepository;
-
-    @Autowired
-    private MessageRepository messageRepository;
+    private ReviewRepository reviewRepository;
 
     @Autowired
     private ReviewResponseRepository reviewResponseRepository;
 
     @Autowired
-    private ReviewRepository reviewRepository;
+    private MessageRepository messageRepository;
 
-    /**
-     * Creates a new report.
-     * Called only when the user does NOT already have a report for this entity.
-     */
+    @Autowired
+    private CommentImageRepository commentImageRepository;
+
+    @Autowired
+    private ReviewResponseImageRepository reviewResponseImageRepository;
+
+    @Autowired
+    private MessageImageRepository messageImageRepository;
+
+    @Transactional(readOnly = true)
+    public List<ReportReasonDto> getAllReportReasons() {
+        return reportReasonRepository.findAll().stream()
+                .map(r -> {
+                    ReportReasonDto dto = new ReportReasonDto();
+                    dto.setCode(r.getCode());
+                    dto.setDescription(r.getDescription());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public MyReportDto createReport(CreateReportRequest request, Principal principal) {
         User reporter = getUserFromPrincipalOrThrow(principal);
 
-        // Enforce one-report-per-user-per-entity
         if (reportRepository.findByReporterUserIdAndEntityTypeAndEntityId(
                 reporter.getUserId(), request.getEntityType(), request.getEntityId()).isPresent()) {
             throw new BadRequestException("You have already reported this " + request.getEntityType().toLowerCase());
         }
 
-        // Validate reasons
         Set<ReportReason> reasons = new HashSet<>();
         for (String code : request.getReasonCodes()) {
             ReportReason reason = reportReasonRepository.findByCode(code)
@@ -79,10 +87,7 @@ public class ReportService {
             reasons.add(reason);
         }
 
-        if (reasons.isEmpty()) {
-            throw new BadRequestException("At least one reason is required");
-        }
-
+        if (reasons.isEmpty()) throw new BadRequestException("At least one reason is required");
         if (request.getExplanation() == null || request.getExplanation().trim().isEmpty()) {
             throw new BadRequestException("Explanation is required");
         }
@@ -100,43 +105,27 @@ public class ReportService {
         return toMyReportDto(saved);
     }
 
-    /**
-     * Returns the user's report for a specific entity.
-     * Used when user clicks "View / Modify Report" on an entity they already reported.
-     */
     @Transactional(readOnly = true)
     public Optional<MyReportDto> getMyReportForEntity(String entityType, Integer entityId, Principal principal) {
         User user = getUserFromPrincipalOrThrow(principal);
-
         Optional<Report> reportOpt = reportRepository.findByReporterUserIdAndEntityTypeAndEntityId(
                 user.getUserId(), entityType, entityId);
-
         return reportOpt.map(this::toMyReportDto);
     }
 
-    /**
-     * Updates the user's own report (explanation + reasons).
-     * only allowed while status is still PENDING.
-     * Once admin changes status (IN_REVIEW, RESOLVED, etc.), user can no longer modify it.
-     */
     @Transactional
     public MyReportDto updateMyReport(Integer reportId, Set<String> newReasonCodes, String newExplanation, Principal principal) {
         User user = getUserFromPrincipalOrThrow(principal);
-
         Report report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new ResourceNotFoundException("Report not found"));
 
-        // Security: only the owner can update
         if (!report.getReporter().getUserId().equals(user.getUserId())) {
             throw new UnauthorizedException("You can only modify your own reports");
         }
-
-        // Cannot modify once admin has started reviewing
         if (!"PENDING".equals(report.getStatus())) {
-            throw new BadRequestException("This report can no longer be modified because an admin has already reviewed it");
+            throw new BadRequestException("This report can no longer be modified");
         }
 
-        // Update reasons
         Set<ReportReason> newReasons = new HashSet<>();
         for (String code : newReasonCodes) {
             ReportReason reason = reportReasonRepository.findByCode(code)
@@ -144,28 +133,18 @@ public class ReportService {
             newReasons.add(reason);
         }
 
-        if (newReasons.isEmpty()) {
-            throw new BadRequestException("At least one reason is required");
-        }
-
+        if (newReasons.isEmpty()) throw new BadRequestException("At least one reason is required");
         if (newExplanation == null || newExplanation.trim().isEmpty()) {
             throw new BadRequestException("Explanation is required");
         }
 
         report.setExplanation(newExplanation.trim());
         report.setReasons(newReasons);
-        // createdAt and status remain unchanged
 
         Report updated = reportRepository.save(report);
         return toMyReportDto(updated);
     }
 
-
-    /**
-     * ADMIN ONLY: Review / update status of any report.
-     * If status is CLOSED, the reported entity is permanently deleted from the database.
-     * For IN_REVIEW / RESOLVED / DISMISSED / PENDING → no entity deletion occurs.
-     */
     @Transactional
     public MyReportDto reviewReport(Integer reportId, String newStatus, String adminExplanation, Principal principal) {
         User admin = getUserFromPrincipalOrThrow(principal);
@@ -186,31 +165,19 @@ public class ReportService {
         report.setReviewedAt(Instant.now());
 
         Report updated = reportRepository.save(report);
-
-        // Permanently delete the reported entity when the admin closes the report
-        if ("CLOSED".equals(newStatus)) {
-            deleteReportedEntity(report.getEntityType(), report.getEntityId());
-        }
-
         return toMyReportDto(updated);
     }
 
-    /**
-     * Returns ALL predefined report reasons (used by the frontend modal).
-     * No paging needed — there are only ~13 reasons.
-     */
     @Transactional(readOnly = true)
-    public List<ReportReasonDto> getAllReportReasons() {
-        return reportReasonRepository.findAll().stream()
-                .map(r -> {
-                    ReportReasonDto dto = new ReportReasonDto();
-                    dto.setCode(r.getCode());
-                    dto.setDescription(r.getDescription());
-                    return dto;
-                })
-                .collect(Collectors.toList());
-    }
+    public Page<ReportSummary> getReportsByEntityType(String entityType, Pageable pageable, Principal principal) {
+        User admin = getUserFromPrincipalOrThrow(principal);
+        if (admin.getUserRoles() == null || !Boolean.TRUE.equals(admin.getUserRoles().getIsAdmin())) {
+            throw new UnauthorizedException("Only admins can view reports");
+        }
 
+        Page<Report> reportsPage = reportRepository.findByEntityTypeOrderByCreatedAtAsc(entityType, pageable);
+        return reportsPage.map(this::mapReportToSpecificDto);
+    }
 
     @Transactional(readOnly = true)
     public ReportSummary getSingleReport(Integer reportId, Principal principal) {
@@ -225,14 +192,6 @@ public class ReportService {
         return mapReportToSpecificDto(report);
     }
 
-    private void deleteReportedEntity(String entityType, Integer entityId) {
-        /*
-            Does nothing because we are not ready to support the deletion of entities
-            Deleting will break a many things right now.
-            Deleting/taking something down is complex and will be future work.
-        */
-    }
-
     private ReportSummary mapReportToSpecificDto(Report report) {
         return switch (report.getEntityType()) {
             case "USER" -> mapToUserReportSummary(report);
@@ -241,7 +200,6 @@ public class ReportService {
             case "REVIEW" -> mapToReviewReportSummary(report);
             case "REVIEW_RESPONSE" -> mapToReviewResponseReportSummary(report);
             case "MESSAGE" -> mapToMessageReportSummary(report);
-            case "MESSAGE_IMAGE" -> mapToMessageImageReportSummary(report);
             default -> throw new BadRequestException("Unknown entity type: " + report.getEntityType());
         };
     }
@@ -266,7 +224,6 @@ public class ReportService {
                 })
                 .collect(Collectors.toList()));
 
-        // Reporter info
         User reporter = report.getReporter();
         if (reporter != null) {
             dto.setReporterId(reporter.getUserId());
@@ -279,7 +236,6 @@ public class ReportService {
     private UserReportSummary mapToUserReportSummary(Report report) {
         UserReportSummary dto = new UserReportSummary();
         copyCommonFields(report, dto);
-
         User user = userRepository.findById(report.getEntityId()).orElse(null);
         if (user != null) {
             dto.setUserId(user.getUserId());
@@ -293,13 +249,11 @@ public class ReportService {
     private PostReportSummary mapToPostReportSummary(Report report) {
         PostReportSummary dto = new PostReportSummary();
         copyCommonFields(report, dto);
-
         Post post = postRepository.findById(report.getEntityId()).orElse(null);
         if (post != null) {
             dto.setPostId(post.getPostId());
             dto.setDescription(post.getDescription());
             dto.setImageUrls(post.getImages().stream().map(PostImage::getImageUrl).toList());
-
             User author = post.getUser();
             if (author != null) {
                 dto.setAuthorId(author.getUserId());
@@ -314,15 +268,12 @@ public class ReportService {
     private CommentReportSummary mapToCommentReportSummary(Report report) {
         CommentReportSummary dto = new CommentReportSummary();
         copyCommonFields(report, dto);
-
         Comment comment = commentRepository.findById(report.getEntityId()).orElse(null);
         if (comment != null) {
             dto.setCommentId(comment.getCommentId());
             dto.setContent(comment.getContent());
-
             List<CommentImage> images = commentImageRepository.findByComment(comment);
             dto.setImageUrls(images.stream().map(CommentImage::getImageUrl).toList());
-
             User author = comment.getUser();
             if (author != null) {
                 dto.setAuthorId(author.getUserId());
@@ -337,14 +288,12 @@ public class ReportService {
     private ReviewReportSummary mapToReviewReportSummary(Report report) {
         ReviewReportSummary dto = new ReviewReportSummary();
         copyCommonFields(report, dto);
-
         Review review = reviewRepository.findById(report.getEntityId()).orElse(null);
         if (review != null) {
             dto.setReviewId(review.getReviewId());
             dto.setRating(review.getRating());
             dto.setContent(review.getContent());
             dto.setImageUrls(review.getImages().stream().map(ReviewImage::getImageUrl).toList());
-
             User reviewer = review.getReviewer();
             if (reviewer != null) {
                 dto.setReviewerId(reviewer.getUserId());
@@ -359,15 +308,12 @@ public class ReportService {
     private ReviewResponseReportSummary mapToReviewResponseReportSummary(Report report) {
         ReviewResponseReportSummary dto = new ReviewResponseReportSummary();
         copyCommonFields(report, dto);
-
         ReviewResponse response = reviewResponseRepository.findById(report.getEntityId()).orElse(null);
         if (response != null) {
             dto.setResponseId(response.getResponseId());
             dto.setContent(response.getContent());
-
             List<ReviewResponseImage> images = reviewResponseImageRepository.findByResponse(response);
             dto.setImageUrls(images.stream().map(ReviewResponseImage::getImageUrl).toList());
-
             User author = response.getUser();
             if (author != null) {
                 dto.setAuthorId(author.getUserId());
@@ -402,29 +348,6 @@ public class ReportService {
         return dto;
     }
 
-    private MessageImageReportSummary mapToMessageImageReportSummary(Report report) {
-        MessageImageReportSummary dto = new MessageImageReportSummary();
-        copyCommonFields(report, dto);
-
-        MessageImage image = messageImageRepository.findById(report.getEntityId()).orElse(null);
-        if (image != null) {
-            dto.setMessageImageId(image.getId());
-            dto.setImageUrls(List.of(image.getImageUrl()));
-
-            Message message = image.getMessage();
-            if (message != null) {
-                User author = message.getUser();
-                if (author != null) {
-                    dto.setAuthorId(author.getUserId());
-                    dto.setAuthorName(author.getName());
-                    dto.setAuthorEmail(author.getEmail());
-                    dto.setAuthorProfilePic(author.getProfilePic());
-                }
-            }
-        }
-        return dto;
-    }
-
     private MyReportDto toMyReportDto(Report report) {
         MyReportDto dto = new MyReportDto();
         dto.setReportId(report.getReportId());
@@ -448,9 +371,7 @@ public class ReportService {
     }
 
     private User getUserFromPrincipalOrThrow(Principal principal) {
-        if (principal == null) {
-            throw new UnauthorizedException("User not authenticated");
-        }
+        if (principal == null) throw new UnauthorizedException("User not authenticated");
         return userRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new UnauthorizedException("User not found"));
     }

@@ -9,16 +9,14 @@ import java.util.List;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "entityType")
 @JsonSubTypes({
-    @JsonSubTypes.Type(value = UserReportSummary.class, name = "USER"),
-    @JsonSubTypes.Type(value = PostReportSummary.class, name = "POST"),
-    @JsonSubTypes.Type(value = CommentReportSummary.class, name = "COMMENT"),
-    @JsonSubTypes.Type(value = ReviewReportSummary.class, name = "REVIEW"),
-    @JsonSubTypes.Type(value = ReviewResponseReportSummary.class, name = "REVIEW_RESPONSE"),
-    @JsonSubTypes.Type(value = MessageReportSummary.class, name = "MESSAGE"),
-    @JsonSubTypes.Type(value = MessageImageReportSummary.class, name = "MESSAGE_IMAGE")
+        @JsonSubTypes.Type(value = UserReportSummary.class, name = "USER"),
+        @JsonSubTypes.Type(value = PostReportSummary.class, name = "POST"),
+        @JsonSubTypes.Type(value = CommentReportSummary.class, name = "COMMENT"),
+        @JsonSubTypes.Type(value = ReviewReportSummary.class, name = "REVIEW"),
+        @JsonSubTypes.Type(value = ReviewResponseReportSummary.class, name = "REVIEW_RESPONSE"),
+        @JsonSubTypes.Type(value = MessageReportSummary.class, name = "MESSAGE")
 })
 
-//  parent class
 public abstract class ReportSummary {
 
     private Integer reportId;

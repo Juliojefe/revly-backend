@@ -12,6 +12,9 @@ import java.util.Optional;
 
 public interface ReportRepository extends JpaRepository<Report, Integer> {
 
+    // Admin list view - all reports for a specific entity type, oldest first
+    Page<Report> findByEntityTypeOrderByCreatedAtAsc(String entityType, Pageable pageable);
+
     // User's "My Reports"
     List<Report> findByReporterUserIdOrderByCreatedAtDesc(Integer reporterUserId);
 
