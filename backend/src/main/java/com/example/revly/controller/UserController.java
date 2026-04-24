@@ -2,9 +2,7 @@ package com.example.revly.controller;
 
 import com.example.revly.dto.request.*;
 import com.example.revly.dto.response.GetUserProfilePrivateResponse;
-import com.example.revly.dto.response.GetUserProfilePublicResponse;
 import com.example.revly.dto.response.UserNameAndPfp;
-import com.example.revly.exception.ForbiddenException;
 import com.example.revly.exception.ResourceNotFoundException;
 import com.example.revly.exception.UnauthorizedException;
 import com.example.revly.model.User;
@@ -36,31 +34,17 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUsersPrivate(PageRequest.of(page, size)));
     }
 
-    //  private verbose response containing all user details
-    @GetMapping("/{id}/profile/private")
-    public ResponseEntity<GetUserProfilePrivateResponse> getUserById(@PathVariable("id") int userId, Principal principal) {
-        User currentUser = getCurrentUser(principal);
-        boolean isOwner = currentUser.getUserId() == userId;
-        boolean isAdmin = currentUser.getUserRoles() != null && currentUser.getUserRoles().getIsAdmin();
-
-        if (!isOwner && !isAdmin) {
-            throw new ForbiddenException("You are not allowed to view this private profile");
-        }
-
-        return ResponseEntity.ok(userService.getUserProfilePrivateById(userId));
-    }
-
     //  public response containing only name and pfp
     @GetMapping("/{id}/name-and-pfp")
     public ResponseEntity<UserNameAndPfp> getUserNameAndPfpById(@PathVariable("id") int userId) {
         return ResponseEntity.ok(userService.getUserNameAndPfpById(userId));
     }
 
-    //  public profile access
-    @GetMapping("/{id}/profile/public")
-    public ResponseEntity<GetUserProfilePublicResponse> getUserProfileById(@PathVariable("id") int userId, Principal principal) {
-        User currentUser = getCurrentUser(principal);
-        return ResponseEntity.ok(userService.getUserProfileById(userId, currentUser.getUserId()));
+    @GetMapping("/{id}/profile")
+    public ResponseEntity<?> getUserProfileById(@PathVariable("id") int userId, Principal principal) {
+        User currentUser = getCurrentUserOrNull(principal);
+        Integer viewerUserId = currentUser != null ? currentUser.getUserId() : null;
+        return ResponseEntity.ok(userService.getUserProfileById(userId, viewerUserId));
     }
 
     @GetMapping("/all-ids")
@@ -138,6 +122,13 @@ public class UserController {
     private User getCurrentUser(Principal principal) {
         if (principal == null) {
             throw new UnauthorizedException("User not authenticated");
+        }
+        return getCurrentUserOrNull(principal);
+    }
+
+    private User getCurrentUserOrNull(Principal principal) {
+        if (principal == null) {
+            return null;
         }
         return userRepository.findByEmail(principal.getName())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));

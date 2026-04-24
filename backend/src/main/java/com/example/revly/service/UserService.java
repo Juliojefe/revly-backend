@@ -52,16 +52,6 @@ public class UserService {
         return new PageImpl<>(responseList, pageable, userPage.getTotalElements());
     }
 
-    public GetUserProfilePrivateResponse getUserProfilePrivateById(int userId) {
-        Optional<User> OptUser = userRepository.findById(userId);
-        if (OptUser.isPresent()) {
-            User u = OptUser.get();
-            return new GetUserProfilePrivateResponse(u);
-        } else {
-            throw new ResourceNotFoundException("User not found with id: " + userId);
-        }
-    }
-
     public UserNameAndPfp getUserNameAndPfpById(int userId){
         Optional<User> OptUser = userRepository.findById(userId);
         if (OptUser.isPresent()) {
@@ -72,18 +62,17 @@ public class UserService {
         }
     }
 
-    public GetUserProfilePublicResponse getUserProfileById(int userId, int viewerUserId) {
-        User viewer = userRepository.findById(viewerUserId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + viewerUserId));
+    public Object getUserProfileById(int userId, Integer viewerUserId) {
         User target = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        boolean isOwner = viewerUserId == userId;
-        boolean isAdmin = viewer.getUserRoles() != null && viewer.getUserRoles().getIsAdmin();
-        boolean viewerFollowsUser = !isOwner && userRepository.isFollowingUser(viewerUserId, userId);
-        boolean canViewFullProfile = isOwner || isAdmin || viewerFollowsUser;
+        boolean isOwner = viewerUserId != null && viewerUserId == userId;
+        if (isOwner) {
+            return new GetUserProfilePrivateResponse(target);
+        }
 
-        return new GetUserProfilePublicResponse(target, canViewFullProfile, viewerFollowsUser);
+        boolean viewerFollowsUser = viewerUserId != null && userRepository.isFollowingUser(viewerUserId, userId);
+        return new GetUserProfilePublicResponse(target, viewerFollowsUser);
     }
 
     public Page<Integer> getAllUserIds(Pageable pageable) {
