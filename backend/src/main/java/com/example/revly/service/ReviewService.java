@@ -120,8 +120,10 @@ public class ReviewService {
         // handle images exactly like CommentService
         List<ReviewImage> currentImages = reviewImageRepository.findByReview(review);
         List<String> keep = dto.getExistingImageUrlsToKeep() != null ? dto.getExistingImageUrlsToKeep() : new ArrayList<>();
-        currentImages.removeIf(img -> !keep.contains(img.getImageUrl()));
-        reviewImageRepository.deleteAll(currentImages.stream().filter(img -> !keep.contains(img.getImageUrl())).collect(Collectors.toList()));
+        List<ReviewImage> toDelete = currentImages.stream()
+                .filter(img -> !keep.contains(img.getImageUrl()))
+                .collect(Collectors.toList());
+        reviewImageRepository.deleteAll(toDelete);
 
         if (newImages != null) {
             for (MultipartFile img : newImages) {
