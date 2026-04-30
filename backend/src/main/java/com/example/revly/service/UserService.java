@@ -66,9 +66,13 @@ public class UserService {
         User target = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        boolean isOwner = viewerUserId != null && viewerUserId == userId;
+        boolean isOwner = viewerUserId != null && viewerUserId.equals(userId);
         if (isOwner) {
             return new GetUserProfilePrivateResponse(target);
+        }
+
+        if (viewerUserId == null) {
+            return new GetUserProfilePublicResponse(target);
         }
 
         boolean viewerFollowsUser = viewerUserId != null && userRepository.isFollowingUser(viewerUserId, userId);
