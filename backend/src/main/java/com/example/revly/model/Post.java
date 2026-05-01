@@ -20,7 +20,7 @@ public class Post {
     @Column(name = "post_id")
     private Integer postId;
 
-    @Column(name = "description", nullable = false, length = 3000)
+    @Column(name = "description", nullable = false, length = 20000)
     private String description;
 
     @ManyToOne
